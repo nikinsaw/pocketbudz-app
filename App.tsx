@@ -1,45 +1,57 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import * as React from 'react';
+import { View, Text } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { enableScreens } from 'react-native-screens';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { TabNavigator } from './src/Navigators';
+import { IconHome, IconInsights } from './src/SVGs/BottomTabIcons';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+enableScreens();
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
+function HomeScreen() {
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Text>Home Screen</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+function InsightsScreen() {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Text>Insights Screen</Text>  
+    </View>
+  );
+}
+
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function RootStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }} >
+      <Stack.Screen name="Tabs" component={MyTabs} />
+    </Stack.Navigator>
+  );
+}
+
+
+function MyTabs() {
+  return (
+    <Tab.Navigator tabBar={(props) => <TabNavigator {...props} />}>
+      <Tab.Screen name="Home" component={HomeScreen} options={{tabBarIcon: (props) => <IconHome {...props} />}} />
+      <Tab.Screen name="Insights" component={InsightsScreen} options={{tabBarIcon: (props) => <IconInsights {...props} />}} />
+    </Tab.Navigator>
+  );
+}
+
+function App() {
+  return (
+    <NavigationContainer>
+      <RootStack />
+    </NavigationContainer>
+  );
+}
 
 export default App;

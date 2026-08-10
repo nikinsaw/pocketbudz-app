@@ -3,6 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "npm": "npm.cmd",
+    "npx": "npx.cmd",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
@@ -10,10 +12,18 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native/new-app-screen": "0.86.2",
+    "@react-navigation/bottom-tabs": "^7.18.15",
+    "@react-navigation/elements": "^2.9.37",
+    "@react-navigation/native": "^7.3.15",
+    "@react-navigation/native-stack": "^7.18.7",
     "react": "19.2.3",
     "react-native": "0.86.2",
-    "@react-native/new-app-screen": "0.86.2",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native-gesture-handler": "^3.1.0",
+    "react-native-reanimated": "^4.5.3",
+    "react-native-safe-area-context": "^5.8.1",
+    "react-native-screens": "^4.26.2",
+    "react-native-worklets": "^0.11.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
