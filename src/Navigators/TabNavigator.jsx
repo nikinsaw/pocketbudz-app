@@ -52,7 +52,7 @@ function TabNavigator({ state, descriptors, navigation }) {
             style={{ flex: 1 }}
           >
             <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              {options.tabBarIcon({ focused: isFocused, color: isFocused ? colors.primary : colors.text, size: 24 })}
+              {options.tabBarIcon({ focused: isFocused, color: isFocused ? '#4CD7F6' : "#BCC9CD" })}
             </View>
             <Text style={{ color: isFocused ? colors.primary : colors.text }}>
               {label}
