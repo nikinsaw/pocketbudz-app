@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import BaseCard from '../Common/BaseCard';
 import colors from '../../theme/colors';
 
 function BudgetProgressItem({ icon, name, remaining, progress, color }) {
@@ -22,16 +23,16 @@ function BudgetProgressSection({ categories }) {
   return (
     <View>
       <Text style={styles.sectionTitle}>Budget Progress</Text>
-      <View style={styles.card}>
+      <BaseCard>
         {categories.map((category, index) => (
           <View
             key={category.name}
-            style={[styles.itemWrapper, index === categories.length - 1 && styles.itemWrapperLast]}
+            style={index !== categories.length - 1 && styles.itemWrapper}
           >
             <BudgetProgressItem {...category} />
           </View>
         ))}
-      </View>
+      </BaseCard>
     </View>
   );
 }
@@ -43,17 +44,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 14,
   },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
   itemWrapper: {
     marginBottom: 22,
-  },
-  itemWrapperLast: {
-    marginBottom: 20,
   },
   item: {},
   itemHeader: {

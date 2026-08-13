@@ -1,16 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import BaseCard from '../Common/BaseCard';
 import colors from '../../theme/colors';
 
 function SavedThisMonthCard({ amount, streakDays, progress = 0.68 }) {
   return (
-    <LinearGradient
-      colors={[colors.gradientStart, colors.gradientEnd]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.card}
-    >
+    <BaseCard backgroundColor="transparent" borderRadius={24} padding={24}>
+      <LinearGradient
+        colors={[colors.gradientStart, colors.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <Text style={styles.label}>SAVED THIS MONTH</Text>
       <Text style={styles.amount}>₹{amount}</Text>
 
@@ -21,16 +23,11 @@ function SavedThisMonthCard({ amount, streakDays, progress = 0.68 }) {
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]} />
       </View>
-    </LinearGradient>
+    </BaseCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 24,
-    padding: 24,
-    overflow: 'hidden',
-  },
   label: {
     color: colors.textDim,
     fontSize: 13,

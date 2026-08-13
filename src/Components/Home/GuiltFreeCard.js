@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import BaseCard from '../Common/BaseCard';
 import colors from '../../theme/colors';
 
 function GuiltFreeCard({ amount }) {
   return (
-    <View style={styles.card}>
+    <BaseCard style={styles.card}>
       <View>
         <Text style={styles.label}>Guilt-free to spend</Text>
         <View style={styles.amountRow}>
@@ -15,7 +16,7 @@ function GuiltFreeCard({ amount }) {
       <View style={styles.badge}>
         <Text style={styles.badgeGlyph}>🙂</Text>
       </View>
-    </View>
+    </BaseCard>
   );
 }
 
@@ -24,9 +25,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    padding: 20,
   },
   label: {
     color: colors.textMuted,

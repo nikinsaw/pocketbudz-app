@@ -1,5 +1,5 @@
-import Button from './Common/Button';
-import Card from './Common/Card';
+import BaseButton from './Common/BaseButton';
+import BaseCard from './Common/BaseCard';
 import CustomAddButton from './CustomAddButton';
 
-export { Button, Card, CustomAddButton };
+export { BaseButton, BaseCard, CustomAddButton };
