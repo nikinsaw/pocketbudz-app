@@ -14,7 +14,12 @@ export const colors = {
   dining: '#FF6B81',
   groceries: '#4CD7F6',
   travel: '#FFB199',
+  housing: '#8C9BB5',
   streakPill: 'rgba(255,255,255,0.18)',
+  successTint: 'rgba(31,187,166,0.16)',
+  successIconBg: '#0E6E68',
+  warningTint: 'rgba(255,107,129,0.14)',
+  pillBg: 'rgba(76,215,246,0.18)',
 };
 
 export default colors;

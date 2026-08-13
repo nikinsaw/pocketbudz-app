@@ -6,12 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { IconHome, IconInsights, IconBudget, IconSettings } from './src/SVGs/BottomTabIcons';
 import { CustomAddButton } from './src/Components';
 import HomeScreen from './src/Screens/HomeScreen';
-
-
-
-function InsightsScreen() {
-  return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Insights Screen</Text></View>;
-}
+import InsightsScreen from './src/Screens/InsightsScreen';
 
 function BudgetScreen() {
   return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Budget Screen</Text></View>;
