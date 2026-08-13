@@ -7,10 +7,7 @@ import { IconHome, IconInsights, IconBudget, IconSettings } from './src/SVGs/Bot
 import { CustomAddButton } from './src/Components';
 import HomeScreen from './src/Screens/HomeScreen';
 import InsightsScreen from './src/Screens/InsightsScreen';
-
-function BudgetScreen() {
-  return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Budget Screen</Text></View>;
-}
+import BudgetScreen from './src/Screens/BudgetScreen';
 
 function SettingsScreen() {
   return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Settings Screen</Text></View>;

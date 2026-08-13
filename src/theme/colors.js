@@ -19,7 +19,9 @@ export const colors = {
   successTint: 'rgba(31,187,166,0.16)',
   successIconBg: '#0E6E68',
   warningTint: 'rgba(255,107,129,0.14)',
+  warningBorder: 'rgba(255,107,129,0.55)',
   pillBg: 'rgba(76,215,246,0.18)',
+  onTrack: '#2FE0B0',
 };
 
 export default colors;
