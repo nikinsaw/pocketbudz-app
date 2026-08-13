@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, StatusBar } from 'react-native';
 import { ScrollView } from 'react-native';
+import { useSelector } from 'react-redux';
 import {
   HomeHeader,
   SavedThisMonthCard,
@@ -10,39 +11,30 @@ import {
 } from '../Components/Home';
 import { useTheme } from '../theme/ThemeContext';
 
+const activityTints = {
+  teal: (colors) => colors.pillBg,
+  success: (colors) => colors.successTint,
+  warning: (colors) => colors.warningTint,
+};
+
 function HomeScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
-  const budgetCategories = [
-    { name: 'Dining', icon: '🍴', remaining: '2,400', progress: 0.6, color: colors.dining },
-    { name: 'Groceries', icon: '🛒', remaining: '4,100', progress: 0.3, color: colors.groceries },
-    { name: 'Travel', icon: '🚗', remaining: '900', progress: 0.85, color: colors.travel },
-  ];
+  const savedThisMonth = useSelector((state) => state.budget.savedThisMonth);
+  const guiltFreeToSpend = useSelector((state) => state.budget.guiltFreeToSpend);
+  const categories = useSelector((state) => state.budget.categories);
+  const transactions = useSelector((state) => state.transactions.items);
 
-  const recentActivities = [
-    {
-      name: 'Blue Tokai',
-      subtitle: 'Today, 9:41 AM',
-      amount: '350',
-      icon: '☕',
-      iconBackground: colors.pillBg,
-    },
-    {
-      name: 'Blinkit',
-      subtitle: 'Yesterday, 6:20 PM',
-      amount: '820',
-      icon: '🛍️',
-      iconBackground: colors.successTint,
-    },
-    {
-      name: 'Netflix',
-      subtitle: '12 Oct',
-      amount: '649',
-      icon: '📺',
-      iconBackground: colors.warningTint,
-    },
-  ];
+  const budgetCategories = categories.map((category) => ({
+    ...category,
+    color: colors[category.colorKey],
+  }));
+
+  const recentActivities = transactions.map((transaction) => ({
+    ...transaction,
+    iconBackground: activityTints[transaction.tint](colors),
+  }));
 
   return (
     <View style={styles.screen}>
@@ -53,10 +45,14 @@ function HomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <SavedThisMonthCard amount="12,400" streakDays={12} progress={0.68} />
+        <SavedThisMonthCard
+          amount={savedThisMonth.amount}
+          streakDays={savedThisMonth.streakDays}
+          progress={savedThisMonth.progress}
+        />
 
         <View style={styles.spacer} />
-        <GuiltFreeCard amount="8,600" />
+        <GuiltFreeCard amount={guiltFreeToSpend.amount} />
 
         <View style={styles.spacerLarge} />
         <BudgetProgressSection categories={budgetCategories} />

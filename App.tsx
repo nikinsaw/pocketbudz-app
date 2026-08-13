@@ -10,6 +10,9 @@ import InsightsScreen from './src/Screens/InsightsScreen';
 import BudgetScreen from './src/Screens/BudgetScreen';
 import SettingsScreen from './src/Screens/SettingsScreen';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { Provider as StoreProvider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from './src/store/store';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -94,13 +97,17 @@ function MyTabs() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Tabs" component={MyTabs} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </ThemeProvider>
+    <StoreProvider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <ThemeProvider>
+          <NavigationContainer>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="Tabs" component={MyTabs} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </ThemeProvider>
+      </PersistGate>
+    </StoreProvider>
   );
 }
 

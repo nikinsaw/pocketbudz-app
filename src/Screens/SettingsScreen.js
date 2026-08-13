@@ -1,16 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, ScrollView, StatusBar } from 'react-native';
+import { useSelector, useDispatch } from 'react-redux';
 import { HomeHeader } from '../Components/Home';
 import { ProfileCard, SettingsSection } from '../Components/Settings';
 import { useTheme } from '../theme/ThemeContext';
+import {
+  toggleBudgetAlerts,
+  toggleStreakReminders,
+  toggleWeeklySummary,
+} from '../store/slices/settingsSlice';
 
 function SettingsScreen() {
   const { colors, isDark, setIsDark } = useTheme();
   const styles = getStyles(colors);
+  const dispatch = useDispatch();
 
-  const [budgetAlerts, setBudgetAlerts] = useState(true);
-  const [streakReminders, setStreakReminders] = useState(true);
-  const [weeklySummary, setWeeklySummary] = useState(false);
+  const { budgetAlerts, streakReminders, weeklySummary } = useSelector(
+    (state) => state.settings,
+  );
 
   const preferenceRows = [
     { icon: '🌙', label: 'Dark Mode', type: 'toggle', toggled: isDark, onToggle: setIsDark },
@@ -24,21 +31,21 @@ function SettingsScreen() {
       label: 'Budget Alerts',
       type: 'toggle',
       toggled: budgetAlerts,
-      onToggle: setBudgetAlerts,
+      onToggle: () => dispatch(toggleBudgetAlerts()),
     },
     {
       icon: '🔥',
       label: 'Streak Reminders',
       type: 'toggle',
       toggled: streakReminders,
-      onToggle: setStreakReminders,
+      onToggle: () => dispatch(toggleStreakReminders()),
     },
     {
       icon: '📊',
       label: 'Weekly Summary',
       type: 'toggle',
       toggled: weeklySummary,
-      onToggle: setWeeklySummary,
+      onToggle: () => dispatch(toggleWeeklySummary()),
     },
   ];
 
