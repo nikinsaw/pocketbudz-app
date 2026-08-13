@@ -5,10 +5,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { IconHome, IconInsights, IconBudget, IconSettings } from './src/SVGs/BottomTabIcons';
 import { CustomAddButton } from './src/Components';
+import HomeScreen from './src/Screens/HomeScreen';
 
-function HomeScreen() {
-  return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Home Screen</Text></View>;
-}
+
 
 function InsightsScreen() {
   return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Insights Screen</Text></View>;
