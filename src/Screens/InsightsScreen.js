@@ -7,16 +7,9 @@ import {
   CategorySpendCard,
   PositivePatternsSection,
 } from '../Components/Insights';
-import colors from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 const savedMonths = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const categorySpend = [
-  { name: 'Housing', amount: '8,000', color: colors.housing },
-  { name: 'Groceries', amount: '5,000', color: colors.groceries },
-  { name: 'Dining Out', amount: '4,200', color: colors.dining, warning: true },
-  { name: 'Transport', amount: '1,000', color: colors.travel },
-];
 
 const positivePatterns = [
   {
@@ -32,6 +25,16 @@ const positivePatterns = [
 ];
 
 function InsightsScreen() {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
+  const categorySpend = [
+    { name: 'Housing', amount: '8,000', color: colors.housing },
+    { name: 'Groceries', amount: '5,000', color: colors.groceries },
+    { name: 'Dining Out', amount: '4,200', color: colors.dining, warning: true },
+    { name: 'Transport', amount: '1,000', color: colors.travel },
+  ];
+
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.headerBackground} />
@@ -67,29 +70,30 @@ function InsightsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  body: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  title: {
-    color: colors.white,
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 16,
-  },
-  spacerLarge: {
-    height: 28,
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    body: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 40,
+    },
+    title: {
+      color: colors.text,
+      fontSize: 24,
+      fontWeight: '800',
+      marginBottom: 16,
+    },
+    spacerLarge: {
+      height: 28,
+    },
+  });
 
 export default InsightsScreen;

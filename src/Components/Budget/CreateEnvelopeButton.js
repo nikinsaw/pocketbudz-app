@@ -1,9 +1,12 @@
 import React from 'react';
 import { Text, StyleSheet } from 'react-native';
 import BaseCard from '../Common/BaseCard';
-import colors from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
 function CreateEnvelopeButton({ onPress }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   return (
     <BaseCard
       clickable
@@ -16,19 +19,20 @@ function CreateEnvelopeButton({ onPress }) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: colors.teal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  label: {
-    color: colors.teal,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    card: {
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: colors.teal,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    label: {
+      color: colors.teal,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+  });
 
 export default CreateEnvelopeButton;

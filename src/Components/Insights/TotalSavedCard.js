@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import BaseCard from '../Common/BaseCard';
-import colors from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
 function TotalSavedCard({ label, amount, changeLabel, months }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   return (
     <BaseCard>
       <View style={styles.header}>
@@ -31,56 +34,57 @@ function TotalSavedCard({ label, amount, changeLabel, months }) {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  label: {
-    color: colors.textMuted,
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  amount: {
-    color: colors.white,
-    fontSize: 30,
-    fontWeight: '800',
-  },
-  pill: {
-    backgroundColor: colors.pillBg,
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  pillText: {
-    color: colors.teal,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  chartPlaceholder: {
-    height: 160,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  chartPlaceholderText: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  axis: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  axisLabel: {
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+    },
+    label: {
+      color: colors.textMuted,
+      fontSize: 14,
+      marginBottom: 8,
+    },
+    amount: {
+      color: colors.text,
+      fontSize: 30,
+      fontWeight: '800',
+    },
+    pill: {
+      backgroundColor: colors.pillBg,
+      borderRadius: 20,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+    },
+    pillText: {
+      color: colors.teal,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    chartPlaceholder: {
+      height: 160,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: colors.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 24,
+    },
+    chartPlaceholderText: {
+      color: colors.textMuted,
+      fontSize: 13,
+    },
+    axis: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 12,
+    },
+    axisLabel: {
+      color: colors.textMuted,
+      fontSize: 12,
+    },
+  });
 
 export default TotalSavedCard;

@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import BaseCard from '../Common/BaseCard';
-import colors from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
 function EnvelopeCard({ icon, title, subtitle, amount, amountLabel, warning, locked, progress }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   return (
-    <BaseCard
-      style={[styles.card, warning && styles.cardWarning]}
-      backgroundColor={colors.card}
-    >
+    <BaseCard style={[styles.card, warning && styles.cardWarning]}>
       <View style={styles.header}>
         <View style={[styles.iconWrap, warning && styles.iconWrapWarning]}>
           <Text style={styles.icon}>{icon}</Text>
@@ -34,84 +34,85 @@ function EnvelopeCard({ icon, title, subtitle, amount, amountLabel, warning, loc
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: 16,
-  },
-  cardWarning: {
-    borderWidth: 1.5,
-    borderColor: colors.warningBorder,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: colors.pillBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  iconWrapWarning: {
-    backgroundColor: colors.warningTint,
-  },
-  icon: {
-    fontSize: 20,
-  },
-  titleWrap: {
-    flex: 1,
-  },
-  title: {
-    color: colors.white,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  subtitleWarning: {
-    color: colors.dining,
-    fontWeight: '600',
-  },
-  lock: {
-    fontSize: 15,
-    opacity: 0.6,
-  },
-  amountRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginTop: 18,
-  },
-  amount: {
-    color: colors.white,
-    fontSize: 26,
-    fontWeight: '800',
-  },
-  amountWarning: {
-    color: colors.dining,
-  },
-  amountLabel: {
-    color: colors.textMuted,
-    fontSize: 14,
-  },
-  track: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.trackDark,
-    marginTop: 14,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 3,
-    backgroundColor: colors.gradientStart,
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    card: {
+      marginBottom: 16,
+    },
+    cardWarning: {
+      borderWidth: 1.5,
+      borderColor: colors.warningBorder,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    iconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: colors.pillBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    },
+    iconWrapWarning: {
+      backgroundColor: colors.warningTint,
+    },
+    icon: {
+      fontSize: 20,
+    },
+    titleWrap: {
+      flex: 1,
+    },
+    title: {
+      color: colors.text,
+      fontSize: 17,
+      fontWeight: '700',
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: 13,
+      marginTop: 2,
+    },
+    subtitleWarning: {
+      color: colors.dining,
+      fontWeight: '600',
+    },
+    lock: {
+      fontSize: 15,
+      opacity: 0.6,
+    },
+    amountRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      marginTop: 18,
+    },
+    amount: {
+      color: colors.text,
+      fontSize: 26,
+      fontWeight: '800',
+    },
+    amountWarning: {
+      color: colors.dining,
+    },
+    amountLabel: {
+      color: colors.textMuted,
+      fontSize: 14,
+    },
+    track: {
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.trackDark,
+      marginTop: 14,
+      overflow: 'hidden',
+    },
+    fill: {
+      height: '100%',
+      borderRadius: 3,
+      backgroundColor: colors.gradientStart,
+    },
+  });
 
 export default EnvelopeCard;

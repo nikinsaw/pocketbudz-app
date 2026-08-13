@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import BaseButton from './BaseButton';
-import colors from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
 function BaseCard({
   children,
@@ -10,12 +10,15 @@ function BaseCard({
   onPress,
   padding = 20,
   borderRadius = 20,
-  backgroundColor = colors.card,
+  backgroundColor,
   style,
   ...rest
 }) {
+  const { colors } = useTheme();
+  const resolvedBackground = backgroundColor ?? colors.card;
+
   const cardStyle = [
-    { backgroundColor, borderRadius, padding, overflow: 'hidden' },
+    { backgroundColor: resolvedBackground, borderRadius, padding, overflow: 'hidden' },
     disabled && { opacity: 0.5 },
     style,
   ];

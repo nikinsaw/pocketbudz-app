@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import colors from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
-function ActivityItem({ icon, iconBackground, name, subtitle, amount }) {
+function ActivityItem({ icon, iconBackground, name, subtitle, amount, styles }) {
   return (
     <View style={styles.item}>
       <View style={[styles.iconWrap, { backgroundColor: iconBackground }]}>
@@ -18,6 +18,9 @@ function ActivityItem({ icon, iconBackground, name, subtitle, amount }) {
 }
 
 function RecentActivitySection({ activities, onSeeAll }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   return (
     <View>
       <View style={styles.header}>
@@ -27,63 +30,64 @@ function RecentActivitySection({ activities, onSeeAll }) {
         </Pressable>
       </View>
       {activities.map((activity) => (
-        <ActivityItem key={activity.name + activity.subtitle} {...activity} />
+        <ActivityItem key={activity.name + activity.subtitle} {...activity} styles={styles} />
       ))}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  seeAll: {
-    color: colors.teal,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 22,
-  },
-  iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  icon: {
-    fontSize: 20,
-  },
-  details: {
-    flex: 1,
-  },
-  name: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  amount: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    sectionTitle: {
+      color: colors.text,
+      fontSize: 20,
+      fontWeight: '800',
+    },
+    seeAll: {
+      color: colors.teal,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 22,
+    },
+    iconWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    },
+    icon: {
+      fontSize: 20,
+    },
+    details: {
+      flex: 1,
+    },
+    name: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: 13,
+      marginTop: 2,
+    },
+    amount: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+  });
 
 export default RecentActivitySection;

@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar } from 'react-native';
 import { HomeHeader } from '../Components/Home';
 import { ProfileCard, SettingsSection } from '../Components/Settings';
-import colors from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 function SettingsScreen() {
-  const [darkMode, setDarkMode] = useState(true);
+  const { colors, isDark, setIsDark } = useTheme();
+  const styles = getStyles(colors);
+
   const [budgetAlerts, setBudgetAlerts] = useState(true);
   const [streakReminders, setStreakReminders] = useState(true);
   const [weeklySummary, setWeeklySummary] = useState(false);
 
   const preferenceRows = [
-    { icon: '🌙', label: 'Dark Mode', type: 'toggle', toggled: darkMode, onToggle: setDarkMode },
+    { icon: '🌙', label: 'Dark Mode', type: 'toggle', toggled: isDark, onToggle: setIsDark },
     { icon: '₹', label: 'Currency Format', type: 'nav', value: 'Indian (Lakhs)' },
     { icon: '📅', label: 'Budget Cycle Start', type: 'nav', value: '1st of month' },
   ];
@@ -68,23 +70,24 @@ function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  body: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  spacerLarge: {
-    height: 28,
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    body: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 40,
+    },
+    spacerLarge: {
+      height: 28,
+    },
+  });
 
 export default SettingsScreen;

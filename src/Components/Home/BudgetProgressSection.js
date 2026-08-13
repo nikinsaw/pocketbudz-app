@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import BaseCard from '../Common/BaseCard';
-import colors from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
-function BudgetProgressItem({ icon, name, remaining, progress, color }) {
+function BudgetProgressItem({ icon, name, remaining, progress, color, styles }) {
   return (
     <View style={styles.item}>
       <View style={styles.itemHeader}>
@@ -20,6 +20,9 @@ function BudgetProgressItem({ icon, name, remaining, progress, color }) {
 }
 
 function BudgetProgressSection({ categories }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   return (
     <View>
       <Text style={styles.sectionTitle}>Budget Progress</Text>
@@ -29,7 +32,7 @@ function BudgetProgressSection({ categories }) {
             key={category.name}
             style={index !== categories.length - 1 && styles.itemWrapper}
           >
-            <BudgetProgressItem {...category} />
+            <BudgetProgressItem {...category} styles={styles} />
           </View>
         ))}
       </BaseCard>
@@ -37,42 +40,43 @@ function BudgetProgressSection({ categories }) {
   );
 }
 
-const styles = StyleSheet.create({
-  sectionTitle: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 14,
-  },
-  itemWrapper: {
-    marginBottom: 22,
-  },
-  item: {},
-  itemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  itemLabel: {
-    color: colors.white,
-    fontSize: 16,
-  },
-  itemAmount: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  track: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.trackDark,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    sectionTitle: {
+      color: colors.text,
+      fontSize: 20,
+      fontWeight: '800',
+      marginBottom: 14,
+    },
+    itemWrapper: {
+      marginBottom: 22,
+    },
+    item: {},
+    itemHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10,
+    },
+    itemLabel: {
+      color: colors.text,
+      fontSize: 16,
+    },
+    itemAmount: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    track: {
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.trackDark,
+      overflow: 'hidden',
+    },
+    fill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+  });
 
 export default BudgetProgressSection;

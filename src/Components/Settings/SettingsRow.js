@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, Switch, StyleSheet, Pressable } from 'react-native';
-import colors from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
 function SettingsRow({ icon, label, type = 'nav', value, toggled, onPress, onToggle, isLast }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
   const handlePress = type === 'toggle' ? () => onToggle && onToggle(!toggled) : onPress;
 
   return (
@@ -32,41 +34,42 @@ function SettingsRow({ icon, label, type = 'nav', value, toggled, onPress, onTog
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  rowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  icon: {
-    fontSize: 18,
-    marginRight: 14,
-    width: 22,
-    textAlign: 'center',
-  },
-  label: {
-    flex: 1,
-    color: colors.white,
-    fontSize: 15,
-  },
-  navValue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  value: {
-    color: colors.textMuted,
-    fontSize: 14,
-  },
-  chevron: {
-    color: colors.textMuted,
-    fontSize: 20,
-    fontWeight: '300',
-    marginLeft: 6,
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 16,
+    },
+    rowDivider: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    icon: {
+      fontSize: 18,
+      marginRight: 14,
+      width: 22,
+      textAlign: 'center',
+    },
+    label: {
+      flex: 1,
+      color: colors.text,
+      fontSize: 15,
+    },
+    navValue: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    value: {
+      color: colors.textMuted,
+      fontSize: 14,
+    },
+    chevron: {
+      color: colors.textMuted,
+      fontSize: 20,
+      fontWeight: '300',
+      marginLeft: 6,
+    },
+  });
 
 export default SettingsRow;

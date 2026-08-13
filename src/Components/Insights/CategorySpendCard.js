@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import BaseCard from '../Common/BaseCard';
-import colors from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
-function CategorySpendRow({ name, amount, color, warning, isLast }) {
+function CategorySpendRow({ name, amount, color, warning, isLast, styles }) {
   return (
     <View style={[styles.row, warning && styles.rowWarning, !isLast && styles.rowSpacing]}>
       <View style={styles.rowLeft}>
@@ -19,6 +19,9 @@ function CategorySpendRow({ name, amount, color, warning, isLast }) {
 }
 
 function CategorySpendCard({ total, categories }) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   return (
     <BaseCard>
       <View style={styles.totalWrap}>
@@ -32,6 +35,7 @@ function CategorySpendCard({ total, categories }) {
             key={category.name}
             {...category}
             isLast={index === categories.length - 1}
+            styles={styles}
           />
         ))}
       </View>
@@ -39,67 +43,68 @@ function CategorySpendCard({ total, categories }) {
   );
 }
 
-const styles = StyleSheet.create({
-  totalWrap: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  totalLabel: {
-    color: colors.textMuted,
-    fontSize: 14,
-    marginBottom: 6,
-  },
-  totalAmount: {
-    color: colors.white,
-    fontSize: 30,
-    fontWeight: '800',
-  },
-  list: {
-    marginTop: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  rowSpacing: {
-    marginBottom: 4,
-  },
-  rowWarning: {
-    backgroundColor: colors.warningTint,
-  },
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 12,
-  },
-  name: {
-    color: colors.white,
-    fontSize: 15,
-  },
-  rowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  amount: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  amountWarning: {
-    color: colors.dining,
-  },
-  warningIcon: {
-    fontSize: 13,
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    totalWrap: {
+      alignItems: 'center',
+      paddingVertical: 12,
+    },
+    totalLabel: {
+      color: colors.textMuted,
+      fontSize: 14,
+      marginBottom: 6,
+    },
+    totalAmount: {
+      color: colors.text,
+      fontSize: 30,
+      fontWeight: '800',
+    },
+    list: {
+      marginTop: 20,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+    },
+    rowSpacing: {
+      marginBottom: 4,
+    },
+    rowWarning: {
+      backgroundColor: colors.warningTint,
+    },
+    rowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    dot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginRight: 12,
+    },
+    name: {
+      color: colors.text,
+      fontSize: 15,
+    },
+    rowRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    amount: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    amountWarning: {
+      color: colors.dining,
+    },
+    warningIcon: {
+      fontSize: 13,
+    },
+  });
 
 export default CategorySpendCard;

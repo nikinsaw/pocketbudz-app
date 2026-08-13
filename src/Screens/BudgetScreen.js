@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, StatusBar } from 'react-native';
 import { HomeHeader } from '../Components/Home';
 import { SafeToSpendCard, EnvelopesSection } from '../Components/Budget';
-import colors from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 const envelopes = [
   {
@@ -39,6 +39,9 @@ const envelopes = [
 ];
 
 function BudgetScreen() {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.headerBackground} />
@@ -61,23 +64,24 @@ function BudgetScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  body: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  spacerLarge: {
-    height: 28,
-  },
-});
+const getStyles = (colors) =>
+  StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    body: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 40,
+    },
+    spacerLarge: {
+      height: 28,
+    },
+  });
 
 export default BudgetScreen;
