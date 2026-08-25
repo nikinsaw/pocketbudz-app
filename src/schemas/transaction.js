@@ -29,3 +29,13 @@ export const transactionResponseSchema = {
   },
   required: ['merchant', 'category', 'amount', 'date'],
 };
+
+// Document/photo import can surface many transactions at once, capped at a
+// sane upper bound — no real personal statement has more than this in one
+// file, and it keeps a malformed response from producing an unbounded array.
+export const transactionsArraySchema = z.array(transactionSchema).min(1).max(200);
+
+export const transactionsArrayResponseSchema = {
+  type: 'ARRAY',
+  items: transactionResponseSchema,
+};
