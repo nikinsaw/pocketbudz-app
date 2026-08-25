@@ -88,7 +88,10 @@ function SettingsScreen() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.headerBackground} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.card}
+      />
       <HomeHeader />
       <ScrollView
         style={styles.body}

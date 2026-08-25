@@ -11,7 +11,7 @@ import {
 import { useTheme } from '../theme/ThemeContext';
 
 function InsightsScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
 
   const savingsGrowth = useSelector((state) => state.insights.savingsGrowth);
@@ -26,7 +26,10 @@ function InsightsScreen() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.headerBackground} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.card}
+      />
       <HomeHeader />
       <ScrollView
         style={styles.body}

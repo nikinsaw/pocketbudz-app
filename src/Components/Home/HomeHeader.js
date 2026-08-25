@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
 
 function HomeHeader() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       <View style={styles.avatar}>
         <Text style={styles.avatarGlyph}>👤</Text>
       </View>
@@ -25,9 +27,8 @@ const getStyles = (colors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: colors.headerBackground,
+      backgroundColor: colors.card,
       paddingHorizontal: 20,
-      paddingTop: 16,
       paddingBottom: 16,
     },
     avatar: {
@@ -44,7 +45,7 @@ const getStyles = (colors) =>
     title: {
       fontSize: 24,
       fontWeight: '800',
-      color: colors.gradientEnd,
+      color: colors.text,
       letterSpacing: 0.3,
     },
     bell: {
