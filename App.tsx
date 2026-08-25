@@ -31,7 +31,7 @@ function MyTabs() {
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
           height: 80,
-          backgroundColor: colors.headerBackground,
+          backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
           borderTopWidth: 1,
         },
