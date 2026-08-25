@@ -6,7 +6,7 @@ import { SafeToSpendCard, EnvelopesSection } from '../Components/Budget';
 import { useTheme } from '../theme/ThemeContext';
 
 function BudgetScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
 
   const safeToSpend = useSelector((state) => state.budget.safeToSpend);
@@ -14,7 +14,10 @@ function BudgetScreen() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.headerBackground} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.card}
+      />
       <HomeHeader />
       <ScrollView
         style={styles.body}

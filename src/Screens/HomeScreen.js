@@ -18,7 +18,7 @@ const activityTints = {
 };
 
 function HomeScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
 
   const savedThisMonth = useSelector((state) => state.budget.savedThisMonth);
@@ -38,7 +38,10 @@ function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.headerBackground} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.card}
+      />
       <HomeHeader />
       <ScrollView
         style={styles.body}

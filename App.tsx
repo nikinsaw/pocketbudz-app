@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -98,19 +99,21 @@ function MyTabs() {
 
 function App() {
   return (
-    <StoreProvider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <ThemeProvider>
-          <AppLockGate>
-            <NavigationContainer>
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="Tabs" component={MyTabs} />
-              </Stack.Navigator>
-            </NavigationContainer>
-          </AppLockGate>
-        </ThemeProvider>
-      </PersistGate>
-    </StoreProvider>
+    <SafeAreaProvider>
+      <StoreProvider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <ThemeProvider>
+            <AppLockGate>
+              <NavigationContainer>
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="Tabs" component={MyTabs} />
+                </Stack.Navigator>
+              </NavigationContainer>
+            </AppLockGate>
+          </ThemeProvider>
+        </PersistGate>
+      </StoreProvider>
+    </SafeAreaProvider>
   );
 }
 
