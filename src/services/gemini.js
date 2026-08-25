@@ -5,14 +5,15 @@ import { GEMINI_API_KEY } from '@env';
 // - endpoint takes the model id in the path, POST .../models/{model}:generateContent
 // - auth via the x-goog-api-key header (avoids the key ending up in URL/logs)
 // - generated text lives at candidates[0].content.parts[0].text
-const MODEL = 'gemini-2.5-flash-lite';
+const MODEL = 'gemini-3.5-flash-lite';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 export class AIUnavailableError extends Error {
-  constructor(reason) {
-    super(reason);
+  constructor(reason, detail) {
+    super(detail || reason);
     this.name = 'AIUnavailableError';
     this.reason = reason;
+    this.detail = detail;
   }
 }
 
@@ -50,13 +51,25 @@ export async function callGemini({ prompt, systemInstruction, responseSchema }) 
   }
 
   if (!response.ok) {
-    throw new AIUnavailableError(`api-error-${response.status}`);
+    let apiMessage = '';
+    try {
+      const errorBody = await response.json();
+      apiMessage = errorBody?.error?.message || '';
+    } catch (parseError) {
+      // response body wasn't JSON — nothing more to extract.
+    }
+    // Logged so the actual cause shows up in the Metro/device console —
+    // the UI only ever shows a generic message, this is for debugging.
+    console.error(`[Gemini] ${response.status} ${response.statusText}: ${apiMessage}`);
+    throw new AIUnavailableError(`api-error-${response.status}`, apiMessage);
   }
 
   const data = await response.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const candidate = data?.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text;
   if (typeof text !== 'string') {
-    throw new AIUnavailableError('empty-response');
+    console.error('[Gemini] empty response, finishReason:', candidate?.finishReason, data);
+    throw new AIUnavailableError('empty-response', candidate?.finishReason);
   }
   return text;
 }
@@ -69,6 +82,19 @@ export function describeAIError(error) {
         return "AI features aren't set up yet — add a Gemini API key to use them.";
       case 'offline':
         return 'AI features need internet — check your connection and try again.';
+      case 'api-error-400':
+        return 'The request to Gemini was malformed — this is a bug, not a you problem.';
+      case 'api-error-401':
+      case 'api-error-403':
+        return "That API key isn't valid — check GEMINI_API_KEY in your .env file.";
+      case 'api-error-404':
+        return "Gemini couldn't find that model — it may have been renamed or retired.";
+      case 'api-error-429':
+        return "You've hit the free-tier rate limit — wait a bit and try again.";
+      case 'empty-response':
+        return error.detail && error.detail !== 'STOP'
+          ? `Gemini declined to answer (${error.detail.toLowerCase()}) — try rephrasing.`
+          : 'Gemini returned an empty response — try again.';
       default:
         return 'AI is temporarily unavailable — try again in a moment.';
     }

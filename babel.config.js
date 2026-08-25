@@ -7,6 +7,12 @@ module.exports = function (api) {
 
   return {
     presets: ['module:@react-native/babel-preset'],
-    plugins: ['module:react-native-dotenv'],
+    plugins: [
+      'module:react-native-dotenv',
+      // zod v4 ships `export * as core from ...` (namespace re-export)
+      // directly in its published ESM, which @react-native/babel-preset
+      // doesn't transform by default — Metro errors on it without this.
+      '@babel/plugin-transform-export-namespace-from',
+    ],
   };
 };
