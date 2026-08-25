@@ -1,5 +1,5 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from '../storage/secureStorage';
 import {
   persistStore,
   persistReducer,
@@ -25,7 +25,7 @@ const rootReducer = combineReducers({
 
 const persistConfig = {
   key: 'pocketbudz-root',
-  storage: AsyncStorage,
+  storage: secureStorage,
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

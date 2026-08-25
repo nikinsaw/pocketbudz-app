@@ -13,6 +13,7 @@ import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { Provider as StoreProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './src/store/store';
+import AppLockGate from './src/Components/AppLock/AppLockGate';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -100,11 +101,13 @@ function App() {
     <StoreProvider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <ThemeProvider>
-          <NavigationContainer>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="Tabs" component={MyTabs} />
-            </Stack.Navigator>
-          </NavigationContainer>
+          <AppLockGate>
+            <NavigationContainer>
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="Tabs" component={MyTabs} />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </AppLockGate>
         </ThemeProvider>
       </PersistGate>
     </StoreProvider>

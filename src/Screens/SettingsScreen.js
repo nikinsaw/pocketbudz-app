@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, StatusBar } from 'react-native';
+import { View, StyleSheet, ScrollView, StatusBar, Alert } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { HomeHeader } from '../Components/Home';
 import { ProfileCard, SettingsSection } from '../Components/Settings';
@@ -8,21 +8,50 @@ import {
   toggleBudgetAlerts,
   toggleStreakReminders,
   toggleWeeklySummary,
+  setAppLockEnabled,
 } from '../store/slices/settingsSlice';
+import { isBiometricAvailable, enableAppLock, disableAppLock } from '../storage/appLock';
 
 function SettingsScreen() {
   const { colors, isDark, setIsDark } = useTheme();
   const styles = getStyles(colors);
   const dispatch = useDispatch();
 
-  const { budgetAlerts, streakReminders, weeklySummary } = useSelector(
+  const { budgetAlerts, streakReminders, weeklySummary, appLockEnabled } = useSelector(
     (state) => state.settings,
   );
+
+  const handleToggleAppLock = async (next) => {
+    if (next) {
+      const available = await isBiometricAvailable();
+      if (!available) {
+        Alert.alert(
+          'Biometric lock unavailable',
+          'Set up Face ID, Touch ID, or fingerprint unlock in your device settings first.',
+        );
+        return;
+      }
+      await enableAppLock();
+    } else {
+      await disableAppLock();
+    }
+    dispatch(setAppLockEnabled(next));
+  };
 
   const preferenceRows = [
     { icon: '🌙', label: 'Dark Mode', type: 'toggle', toggled: isDark, onToggle: setIsDark },
     { icon: '₹', label: 'Currency Format', type: 'nav', value: 'Indian (Lakhs)' },
     { icon: '📅', label: 'Budget Cycle Start', type: 'nav', value: '1st of month' },
+  ];
+
+  const securityRows = [
+    {
+      icon: '🔐',
+      label: 'App Lock',
+      type: 'toggle',
+      toggled: appLockEnabled,
+      onToggle: handleToggleAppLock,
+    },
   ];
 
   const notificationRows = [
@@ -70,6 +99,7 @@ function SettingsScreen() {
 
         <View style={styles.spacerLarge} />
         <SettingsSection title="Preferences" rows={preferenceRows} />
+        <SettingsSection title="Security & Privacy" rows={securityRows} />
         <SettingsSection title="Notifications" rows={notificationRows} />
         <SettingsSection title="About" rows={aboutRows} />
       </ScrollView>
