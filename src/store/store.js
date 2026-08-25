@@ -29,7 +29,7 @@ const rootReducer = combineReducers({
 // state rather than rehydrating a shape the reducers no longer expect —
 // which is what caused "cannot read property length of undefined" when
 // insights.totalSaved.months became .series.
-const PERSIST_VERSION = 3;
+const PERSIST_VERSION = 4;
 
 const persistConfig = {
   key: 'pocketbudz-root',

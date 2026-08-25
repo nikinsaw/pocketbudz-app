@@ -29,8 +29,8 @@ function RecentActivitySection({ activities, onSeeAll }) {
           <Text style={styles.seeAll}>See All</Text>
         </Pressable>
       </View>
-      {activities.map((activity) => (
-        <ActivityItem key={activity.name + activity.subtitle} {...activity} styles={styles} />
+      {activities.map((activity, index) => (
+        <ActivityItem key={activity.id ?? index} {...activity} styles={styles} />
       ))}
     </View>
   );

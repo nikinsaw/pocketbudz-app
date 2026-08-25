@@ -10,6 +10,7 @@ import {
   RecentActivitySection,
 } from '../Components/Home';
 import { useTheme } from '../theme/ThemeContext';
+import { formatRelativeDate } from '../utils/formatDate';
 
 const activityTints = {
   teal: (colors) => colors.pillBg,
@@ -32,7 +33,11 @@ function HomeScreen() {
   }));
 
   const recentActivities = transactions.map((transaction) => ({
-    ...transaction,
+    id: transaction.id,
+    name: transaction.merchant,
+    subtitle: formatRelativeDate(transaction.date),
+    amount: transaction.amount.toLocaleString('en-IN'),
+    icon: transaction.icon,
     iconBackground: activityTints[transaction.tint](colors),
   }));
 

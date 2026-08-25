@@ -10,6 +10,7 @@ import HomeScreen from './src/Screens/HomeScreen';
 import InsightsScreen from './src/Screens/InsightsScreen';
 import BudgetScreen from './src/Screens/BudgetScreen';
 import SettingsScreen from './src/Screens/SettingsScreen';
+import AIAssistantScreen from './src/Screens/AIAssistantScreen';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { Provider as StoreProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -19,7 +20,7 @@ import AppLockGate from './src/Components/AppLock/AppLockGate';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function MyTabs() {
+function MyTabs({ navigation }) {
   const { colors } = useTheme();
 
   return (
@@ -65,13 +66,8 @@ function MyTabs() {
             </View>
           ),
           // Override the default tab button
-          tabBarButton: (props) => (
-            <CustomAddButton 
-              onPress={() => {
-                // Handle the button press here, e.g., navigate to a new screen or open a modal
-                console.log('Custom Add Button Pressed');
-              }} 
-            />
+          tabBarButton: () => (
+            <CustomAddButton onPress={() => navigation.navigate('AIAssistant')} />
           )
         }}
       />
@@ -107,6 +103,11 @@ function App() {
               <NavigationContainer>
                 <Stack.Navigator screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="Tabs" component={MyTabs} />
+                  <Stack.Screen
+                    name="AIAssistant"
+                    component={AIAssistantScreen}
+                    options={{ presentation: 'modal' }}
+                  />
                 </Stack.Navigator>
               </NavigationContainer>
             </AppLockGate>
