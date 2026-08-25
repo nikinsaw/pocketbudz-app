@@ -9,15 +9,31 @@ const initialState = {
     label: 'Total Saved (6 mo)',
     amount: '42,500',
     changeLabel: '+12.4%',
-    months: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    series: [
+      { label: 'Jul', value: 18000 },
+      { label: 'Aug', value: 22000 },
+      { label: 'Sep', value: 25000 },
+      { label: 'Oct', value: 30500 },
+      { label: 'Nov', value: 36000 },
+      { label: 'Dec', value: 42500 },
+    ],
   },
   categorySpend: {
-    total: '18,200',
+    // Sourced from the user's own expense log (Copy of Sheet2, personal
+    // budget workbook), categorized by hand — real spend, not mock data.
+    period: 'August 2026',
+    total: '18,300',
     categories: [
-      { name: 'Housing', amount: '8,000', colorKey: 'housing' },
-      { name: 'Groceries', amount: '5,000', colorKey: 'groceries' },
-      { name: 'Dining Out', amount: '4,200', colorKey: 'dining', warning: true },
-      { name: 'Transport', amount: '1,000', colorKey: 'travel' },
+      { name: 'Groceries', amount: '6,561', value: 6561.28, colorKey: 'groceries' },
+      { name: 'Utilities', amount: '3,802', value: 3801.82, colorKey: 'utilities' },
+      { name: 'Household Help', amount: '3,500', value: 3500, colorKey: 'householdHelp' },
+      { name: 'Family Support', amount: '2,000', value: 2000, colorKey: 'familySupport' },
+      { name: 'Dining & Snacks', amount: '1,024', value: 1024, colorKey: 'dining' },
+      { name: 'Gifts & Jewelry', amount: '630', value: 630, colorKey: 'giftsJewelry' },
+      { name: 'Transport', amount: '368', value: 368, colorKey: 'travel' },
+      { name: 'Health & Medical', amount: '200', value: 200, colorKey: 'healthMedical' },
+      { name: 'Personal Care', amount: '115', value: 115, colorKey: 'personalCare' },
+      { name: 'Household Supplies', amount: '100', value: 100, colorKey: 'householdSupplies' },
     ],
   },
   positivePatterns: [

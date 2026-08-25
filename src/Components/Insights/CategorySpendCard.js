@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { PieChart } from 'react-native-gifted-charts';
 import BaseCard from '../Common/BaseCard';
 import { useTheme } from '../../theme/ThemeContext';
 
@@ -22,11 +23,34 @@ function CategorySpendCard({ total, categories }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
-  return (
-    <BaseCard>
-      <View style={styles.totalWrap}>
+  // The donut's segments reuse the exact same `color` each row's dot uses,
+  // so the ring and the list beneath it read as one consistent legend.
+  const pieData = categories.map((category) => ({
+    value: category.value,
+    color: category.color,
+  }));
+
+  const renderCenterLabel = useCallback(
+    () => (
+      <View style={styles.centerLabel}>
         <Text style={styles.totalLabel}>Total</Text>
         <Text style={styles.totalAmount}>₹{total}</Text>
+      </View>
+    ),
+    [styles, total],
+  );
+
+  return (
+    <BaseCard>
+      <View style={styles.chartWrap}>
+        <PieChart
+          data={pieData}
+          donut
+          radius={95}
+          innerRadius={65}
+          innerCircleColor={colors.card}
+          centerLabelComponent={renderCenterLabel}
+        />
       </View>
 
       <View style={styles.list}>
@@ -45,18 +69,22 @@ function CategorySpendCard({ total, categories }) {
 
 const getStyles = (colors) =>
   StyleSheet.create({
-    totalWrap: {
+    chartWrap: {
       alignItems: 'center',
       paddingVertical: 12,
     },
+    centerLabel: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     totalLabel: {
       color: colors.textMuted,
-      fontSize: 14,
-      marginBottom: 6,
+      fontSize: 13,
+      marginBottom: 4,
     },
     totalAmount: {
       color: colors.text,
-      fontSize: 30,
+      fontSize: 22,
       fontWeight: '800',
     },
     list: {

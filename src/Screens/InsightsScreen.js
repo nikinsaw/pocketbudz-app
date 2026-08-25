@@ -42,11 +42,16 @@ function InsightsScreen() {
           label={totalSaved.label}
           amount={totalSaved.amount}
           changeLabel={totalSaved.changeLabel}
-          months={totalSaved.months}
+          series={totalSaved.series}
         />
 
         <View style={styles.spacerLarge} />
-        <Text style={styles.title}>Category Spend</Text>
+        <Text style={[styles.title, categorySpend.period && styles.titleTight]}>
+          Category Spend
+        </Text>
+        {categorySpend.period ? (
+          <Text style={styles.subtitle}>{categorySpend.period}</Text>
+        ) : null}
         <CategorySpendCard total={categorySpend.total} categories={spendCategories} />
 
         <View style={styles.spacerLarge} />
@@ -75,6 +80,14 @@ const getStyles = (colors) =>
       color: colors.text,
       fontSize: 24,
       fontWeight: '800',
+      marginBottom: 16,
+    },
+    titleTight: {
+      marginBottom: 4,
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: 14,
       marginBottom: 16,
     },
     spacerLarge: {
