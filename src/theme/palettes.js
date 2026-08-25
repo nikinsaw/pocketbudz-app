@@ -3,7 +3,6 @@
 // updates every screen at once.
 
 const shared = {
-  headerBackground: '#D8DAE6',
   avatarBg: '#BFD9F2',
   white: '#FFFFFF',
   gradientStart: '#1FBBA6',
