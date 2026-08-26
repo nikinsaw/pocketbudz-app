@@ -43,6 +43,7 @@ function AIAssistantScreen() {
 
   const transactions = useSelector((state) => state.transactions.items);
   const envelopes = useSelector((state) => state.budget.envelopes);
+  const categories = useSelector((state) => state.profile.categories);
 
   const [question, setQuestion] = useState('');
   const [askStatus, setAskStatus] = useState('idle'); // idle | loading | error
@@ -85,7 +86,7 @@ function AIAssistantScreen() {
     setEntryError('');
     setAddedTransaction(null);
 
-    const result = await parseTransactionFromPrompt(entryText.trim());
+    const result = await parseTransactionFromPrompt(entryText.trim(), categories);
     if (result.success) {
       dispatch(addTransaction(result.transaction));
       setAddedTransaction(result.transaction);
@@ -133,6 +134,7 @@ function AIAssistantScreen() {
       name: picked.name,
       type: picked.type,
       size: picked.size,
+      categories,
     });
 
     if (result.success) {
