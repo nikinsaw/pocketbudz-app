@@ -11,6 +11,7 @@ import InsightsScreen from './src/Screens/InsightsScreen';
 import BudgetScreen from './src/Screens/BudgetScreen';
 import SettingsScreen from './src/Screens/SettingsScreen';
 import AIAssistantScreen from './src/Screens/AIAssistantScreen';
+import AllTransactionsScreen from './src/Screens/AllTransactionsScreen';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { Provider as StoreProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -108,6 +109,7 @@ function App() {
                     component={AIAssistantScreen}
                     options={{ presentation: 'modal' }}
                   />
+                  <Stack.Screen name="AllTransactions" component={AllTransactionsScreen} />
                 </Stack.Navigator>
               </NavigationContainer>
             </AppLockGate>

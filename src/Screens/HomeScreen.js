@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, StatusBar } from 'react-native';
 import { ScrollView } from 'react-native';
 import { useSelector } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import {
   HomeHeader,
   SavedThisMonthCard,
@@ -10,17 +11,14 @@ import {
   RecentActivitySection,
 } from '../Components/Home';
 import { useTheme } from '../theme/ThemeContext';
-import { formatRelativeDate } from '../utils/formatDate';
+import { getActivityDisplay } from '../utils/transactionDisplay';
 
-const activityTints = {
-  teal: (colors) => colors.pillBg,
-  success: (colors) => colors.successTint,
-  warning: (colors) => colors.warningTint,
-};
+const RECENT_ACTIVITY_LIMIT = 5;
 
 function HomeScreen() {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
+  const navigation = useNavigation();
 
   const savedThisMonth = useSelector((state) => state.budget.savedThisMonth);
   const guiltFreeToSpend = useSelector((state) => state.budget.guiltFreeToSpend);
@@ -32,14 +30,14 @@ function HomeScreen() {
     color: colors[category.colorKey],
   }));
 
-  const recentActivities = transactions.map((transaction) => ({
-    id: transaction.id,
-    name: transaction.merchant,
-    subtitle: formatRelativeDate(transaction.date),
-    amount: transaction.amount.toLocaleString('en-IN'),
-    icon: transaction.icon,
-    iconBackground: activityTints[transaction.tint](colors),
-  }));
+  // Insertion order isn't guaranteed to match date order once backdated
+  // ("yesterday") or bulk-imported transactions mix in, so sort explicitly
+  // rather than trust unshift() alone.
+  const sortedTransactions = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+
+  const recentActivities = sortedTransactions
+    .slice(0, RECENT_ACTIVITY_LIMIT)
+    .map((transaction) => getActivityDisplay(transaction, colors));
 
   return (
     <View style={styles.screen}>
@@ -66,7 +64,10 @@ function HomeScreen() {
         <BudgetProgressSection categories={budgetCategories} />
 
         <View style={styles.spacerLarge} />
-        <RecentActivitySection activities={recentActivities} />
+        <RecentActivitySection
+          activities={recentActivities}
+          onSeeAll={() => navigation.navigate('AllTransactions')}
+        />
       </ScrollView>
     </View>
   );
