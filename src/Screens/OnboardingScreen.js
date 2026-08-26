@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  ScrollView,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import CustomHeader from '../Components/Common/CustomHeader';
@@ -234,18 +226,15 @@ function OnboardingScreen() {
         </Pressable>
       ) : null}
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={20}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {renderStep()}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {renderStep()}
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -255,9 +244,6 @@ const getStyles = (colors) =>
     screen: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    flex: {
-      flex: 1,
     },
     progressRow: {
       flexDirection: 'row',

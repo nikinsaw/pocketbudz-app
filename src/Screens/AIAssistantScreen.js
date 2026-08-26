@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-} from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   pick,
@@ -174,16 +166,14 @@ function AIAssistantScreen() {
   return (
     <View style={styles.screen}>
       <CustomHeader title="AI Assistant" leftAction="close" />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={20}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.sectionTitle}>Ask about your spending</Text>
+        <Text style={styles.sectionTitle}>Ask about your spending</Text>
           <BaseCard style={styles.card}>
             <TextInput
               value={question}
@@ -303,8 +293,7 @@ function AIAssistantScreen() {
               </View>
             ) : null}
           </BaseCard>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -314,9 +303,6 @@ const getStyles = (colors) =>
     screen: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    flex: {
-      flex: 1,
     },
     content: {
       paddingHorizontal: 20,

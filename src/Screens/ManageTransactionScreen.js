@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, Alert } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import CustomHeader from '../Components/Common/CustomHeader';
@@ -132,16 +123,14 @@ function ManageTransactionScreen() {
   return (
     <View style={styles.screen}>
       <CustomHeader title={isEditing ? 'Edit Transaction' : 'Add Transaction'} leftAction="close" />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={20}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.sectionTitle}>Category</Text>
+        <Text style={styles.sectionTitle}>Category</Text>
           <View style={styles.chipWrap}>
             {categories.map((category) => (
               <Pressable
@@ -222,8 +211,7 @@ function ManageTransactionScreen() {
               <Text style={styles.deleteButtonLabel}>Delete Transaction</Text>
             </Pressable>
           ) : null}
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -233,9 +221,6 @@ const getStyles = (colors) =>
     screen: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    flex: {
-      flex: 1,
     },
     content: {
       paddingHorizontal: 20,
