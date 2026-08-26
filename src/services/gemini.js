@@ -5,7 +5,7 @@ import { GEMINI_API_KEY } from '@env';
 // - endpoint takes the model id in the path, POST .../models/{model}:generateContent
 // - auth via the x-goog-api-key header (avoids the key ending up in URL/logs)
 // - generated text lives at candidates[0].content.parts[0].text
-const MODEL = 'gemini-3.5-flash-lite';
+const MODEL = 'gemini-2.5-flash-lite';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 export class AIUnavailableError extends Error {
