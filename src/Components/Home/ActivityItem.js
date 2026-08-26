@@ -1,15 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 
 // Shared row renderer for both HomeScreen's "Recent Activity" preview and
-// the full AllTransactionsScreen list.
-function ActivityItem({ icon, iconBackground, name, subtitle, amount }) {
+// the full AllTransactionsScreen list. Tappable (opens edit) when onPress
+// is given — same pattern as EnvelopeCard.
+function ActivityItem({ icon, iconBackground, name, subtitle, amount, onPress }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const Wrapper = onPress ? Pressable : View;
 
   return (
-    <View style={styles.item}>
+    <Wrapper style={styles.item} onPress={onPress}>
       <View style={[styles.iconWrap, { backgroundColor: iconBackground }]}>
         <Text style={styles.icon}>{icon}</Text>
       </View>
@@ -18,7 +20,7 @@ function ActivityItem({ icon, iconBackground, name, subtitle, amount }) {
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
       <Text style={styles.amount}>-₹{amount}</Text>
-    </View>
+    </Wrapper>
   );
 }
 
