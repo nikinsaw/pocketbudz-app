@@ -76,7 +76,9 @@ function BudgetScreen() {
         <View style={styles.spacerLarge} />
         <EnvelopesSection
           envelopes={displayEnvelopes}
-          onEdit={() => {}}
+          onEditEnvelope={(envelope) =>
+            navigation.navigate('CreateEnvelope', { envelopeId: envelope.id })
+          }
           onCreate={() => navigation.navigate('CreateEnvelope')}
         />
       </ScrollView>

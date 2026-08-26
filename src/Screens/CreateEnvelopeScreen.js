@@ -10,12 +10,12 @@ import {
   Platform,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import CustomHeader from '../Components/Common/CustomHeader';
 import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
-import { addEnvelope } from '../store/slices/budgetSlice';
+import { addEnvelope, updateEnvelope } from '../store/slices/budgetSlice';
 import { addCategory } from '../store/slices/profileSlice';
 
 // Rotated through for custom categories a user adds inline, since asking
@@ -48,14 +48,26 @@ function CreateEnvelopeScreen() {
   const styles = getStyles(colors);
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const route = useRoute();
 
   const categories = useSelector((state) => state.profile.categories);
+  const envelopes = useSelector((state) => state.budget.envelopes);
 
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState(null);
+  const envelopeId = route.params?.envelopeId;
+  const editingEnvelope = envelopeId
+    ? envelopes.find((envelope) => envelope.id === envelopeId)
+    : null;
+  const isEditing = !!editingEnvelope;
+
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState(
+    editingEnvelope?.categoryKey ?? null,
+  );
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryLabel, setNewCategoryLabel] = useState('');
-  const [type, setType] = useState('spending');
-  const [budgetLimit, setBudgetLimit] = useState('');
+  const [type, setType] = useState(editingEnvelope?.type ?? 'spending');
+  const [budgetLimit, setBudgetLimit] = useState(
+    editingEnvelope ? String(editingEnvelope.budgetLimit) : '',
+  );
   const [error, setError] = useState('');
 
   const selectedCategory = categories.find((category) => category.key === selectedCategoryKey);
@@ -75,7 +87,7 @@ function CreateEnvelopeScreen() {
     setIsAddingCategory(false);
   };
 
-  const handleCreate = () => {
+  const handleSubmit = () => {
     setError('');
 
     if (!selectedCategory) {
@@ -88,22 +100,26 @@ function CreateEnvelopeScreen() {
       return;
     }
 
-    dispatch(
-      addEnvelope({
-        categoryKey: selectedCategory.key,
-        icon: selectedCategory.icon,
-        title: selectedCategory.label,
-        colorKey: selectedCategory.colorKey,
-        type,
-        budgetLimit: parsedLimit,
-      }),
-    );
+    const payload = {
+      categoryKey: selectedCategory.key,
+      icon: selectedCategory.icon,
+      title: selectedCategory.label,
+      colorKey: selectedCategory.colorKey,
+      type,
+      budgetLimit: parsedLimit,
+    };
+
+    if (isEditing) {
+      dispatch(updateEnvelope({ id: editingEnvelope.id, ...payload }));
+    } else {
+      dispatch(addEnvelope(payload));
+    }
     navigation.goBack();
   };
 
   return (
     <View style={styles.screen}>
-      <CustomHeader title="New Envelope" leftAction="close" />
+      <CustomHeader title={isEditing ? 'Edit Envelope' : 'New Envelope'} leftAction="close" />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -188,8 +204,10 @@ function CreateEnvelopeScreen() {
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <BaseButton onPress={handleCreate} style={styles.createButton}>
-            <Text style={styles.createButtonLabel}>Create Envelope</Text>
+          <BaseButton onPress={handleSubmit} style={styles.createButton}>
+            <Text style={styles.createButtonLabel}>
+              {isEditing ? 'Save Changes' : 'Create Envelope'}
+            </Text>
           </BaseButton>
         </ScrollView>
       </KeyboardAvoidingView>

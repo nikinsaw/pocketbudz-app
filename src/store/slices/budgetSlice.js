@@ -97,8 +97,21 @@ const budgetSlice = createSlice({
         };
       },
     },
+    updateEnvelope: (state, action) => {
+      const { id, categoryKey, icon, title, colorKey, type, budgetLimit } = action.payload;
+      const envelope = state.envelopes.find((item) => item.id === id);
+      if (!envelope) {
+        return;
+      }
+      envelope.categoryKey = categoryKey;
+      envelope.icon = icon;
+      envelope.title = title;
+      envelope.colorKey = colorKey;
+      envelope.type = type;
+      envelope.budgetLimit = budgetLimit;
+    },
   },
 });
 
-export const { addEnvelope } = budgetSlice.actions;
+export const { addEnvelope, updateEnvelope } = budgetSlice.actions;
 export default budgetSlice.reducer;
