@@ -14,6 +14,7 @@ import AIAssistantScreen from './src/Screens/AIAssistantScreen';
 import AllTransactionsScreen from './src/Screens/AllTransactionsScreen';
 import OnboardingScreen from './src/Screens/OnboardingScreen';
 import CreateEnvelopeScreen from './src/Screens/CreateEnvelopeScreen';
+import EditIncomeScreen from './src/Screens/EditIncomeScreen';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { Provider as StoreProvider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -118,6 +119,11 @@ function RootNavigator() {
       <Stack.Screen
         name="CreateEnvelope"
         component={CreateEnvelopeScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="EditIncome"
+        component={EditIncomeScreen}
         options={{ presentation: 'modal' }}
       />
     </Stack.Navigator>

@@ -5,16 +5,59 @@ import { useNavigation } from '@react-navigation/native';
 import { HomeHeader } from '../Components/Home';
 import { SafeToSpendCard, EnvelopesSection } from '../Components/Budget';
 import { useTheme } from '../theme/ThemeContext';
-import { computeEnvelopeDisplay } from '../utils/envelopeDisplay';
+import { computeBudgetSummary } from '../utils/budgetSummary';
+
+const WARNING_THRESHOLD = 0.85;
+
+// Matches a transaction to an envelope by category label — only works for
+// the five categories the AI's transactionSchema knows about (Shopping,
+// Dining Out, Transport, Rent, Other). A custom envelope category won't
+// accumulate spend until that schema is made category-list-aware.
+function computeEnvelopeDisplay(envelope, transactions) {
+  const spent = transactions
+    .filter((transaction) => transaction.category === envelope.title)
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+
+  const progress = envelope.budgetLimit > 0 ? Math.min(spent / envelope.budgetLimit, 1) : 0;
+
+  if (envelope.type === 'fixed') {
+    return {
+      ...envelope,
+      subtitle: progress >= 1 ? 'Paid this cycle' : 'Fixed',
+      amount: envelope.budgetLimit.toLocaleString('en-IN'),
+      amountLabel: 'set aside',
+      locked: true,
+      progress,
+    };
+  }
+
+  const remaining = Math.max(envelope.budgetLimit - spent, 0);
+  const warning = progress >= WARNING_THRESHOLD;
+  return {
+    ...envelope,
+    subtitle: warning ? 'Nearing limit' : 'On track',
+    amount: remaining.toLocaleString('en-IN'),
+    amountLabel: 'left',
+    warning,
+  };
+}
 
 function BudgetScreen() {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
   const navigation = useNavigation();
 
-  const safeToSpend = useSelector((state) => state.budget.safeToSpend);
   const envelopes = useSelector((state) => state.budget.envelopes);
   const transactions = useSelector((state) => state.transactions.items);
+  const monthlyIncome = useSelector((state) => state.profile.monthlyIncome);
+  const budgetCycleStartDay = useSelector((state) => state.profile.budgetCycleStartDay);
+
+  const { safeToSpend } = computeBudgetSummary({
+    envelopes,
+    transactions,
+    monthlyIncome,
+    budgetCycleStartDay,
+  });
 
   const displayEnvelopes = envelopes.map((envelope) =>
     computeEnvelopeDisplay(envelope, transactions),
@@ -33,10 +76,11 @@ function BudgetScreen() {
         showsVerticalScrollIndicator={false}
       >
         <SafeToSpendCard
-          amount={safeToSpend.amount}
-          total={safeToSpend.total}
-          daysLeft={safeToSpend.daysLeft}
-          status={safeToSpend.status}
+          amount={safeToSpend?.amount}
+          total={safeToSpend?.total}
+          daysLeft={safeToSpend?.daysLeft}
+          status={safeToSpend?.status}
+          onPress={() => navigation.navigate('EditIncome')}
         />
 
         <View style={styles.spacerLarge} />

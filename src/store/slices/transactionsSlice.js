@@ -1,26 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { TRANSACTION_CATEGORIES } from '../../schemas/transaction';
 
-export { TRANSACTION_CATEGORIES };
-
-// icon: emoji shown in the Recent Activity list.
-// tint: theme token key (pillBg/successTint/warningTint — resolved at
-// render time, same pattern as budgetSlice.categories' colorKey).
-const CATEGORY_ICON = {
-  Shopping: '🛍️',
-  'Dining Out': '🍴',
-  Transport: '🚗',
-  Rent: '🏠',
-  Other: '🧾',
-};
-
-const CATEGORY_TINT = {
-  Shopping: 'success',
-  'Dining Out': 'warning',
-  Transport: 'teal',
-  Rent: 'teal',
-  Other: 'teal',
-};
+// Used when a transaction's category doesn't match anything in
+// profile.categories (shouldn't happen in practice — the AI and any manual
+// picker both draw from that same list — but keeps a transaction
+// renderable instead of crashing on a missing icon/tint lookup).
+const FALLBACK_ICON = '🧾';
+const FALLBACK_COLOR_KEY = 'householdSupplies';
 
 function generateId() {
   return `txn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -35,7 +20,7 @@ const initialState = {
       amount: 350,
       date: '2026-08-24',
       icon: '☕',
-      tint: 'teal',
+      colorKey: 'dining',
     },
     {
       id: 'txn_seed_2',
@@ -44,7 +29,7 @@ const initialState = {
       amount: 820,
       date: '2026-08-23',
       icon: '🛍️',
-      tint: 'success',
+      colorKey: 'giftsJewelry',
     },
     {
       id: 'txn_seed_3',
@@ -53,7 +38,7 @@ const initialState = {
       amount: 649,
       date: '2026-08-12',
       icon: '📺',
-      tint: 'warning',
+      colorKey: FALLBACK_COLOR_KEY,
     },
   ],
 };
@@ -62,29 +47,43 @@ const transactionsSlice = createSlice({
   name: 'transactions',
   initialState,
   reducers: {
-    addTransaction: {
+    // icon/colorKey are resolved by the addTransaction thunk below (it has
+    // access to profile.categories); this internal action just stores
+    // whatever it's given, with an id assigned.
+    transactionAdded: {
       reducer(state, action) {
         state.items.unshift(action.payload);
       },
-      // Callers (including the AI quick-add flow) only supply the fields a
-      // human or the model would know — id/icon/tint are always assigned
-      // here so every transaction stays visually consistent.
-      prepare({ merchant, category, amount, date }) {
+      prepare({ merchant, category, amount, date, icon, colorKey }) {
         return {
-          payload: {
-            id: generateId(),
-            merchant,
-            category,
-            amount,
-            date,
-            icon: CATEGORY_ICON[category] || CATEGORY_ICON.Other,
-            tint: CATEGORY_TINT[category] || CATEGORY_TINT.Other,
-          },
+          payload: { id: generateId(), merchant, category, amount, date, icon, colorKey },
         };
       },
     },
   },
 });
 
-export const { addTransaction } = transactionsSlice.actions;
+export const { transactionAdded } = transactionsSlice.actions;
+
+// Callers (AI quick-add, document import, future manual entry) only supply
+// the fields a human or the model would know — icon/colorKey always come
+// from the user's real category list so a transaction's look matches its
+// envelope/category everywhere else in the app.
+export function addTransaction({ merchant, category, amount, date }) {
+  return (dispatch, getState) => {
+    const categories = getState().profile.categories;
+    const match = categories.find((item) => item.label === category);
+    dispatch(
+      transactionAdded({
+        merchant,
+        category,
+        amount,
+        date,
+        icon: match?.icon || FALLBACK_ICON,
+        colorKey: match?.colorKey || FALLBACK_COLOR_KEY,
+      }),
+    );
+  };
+}
+
 export default transactionsSlice.reducer;

@@ -1,9 +1,9 @@
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import { callGemini, AIUnavailableError, describeAIError } from './gemini';
 import {
-  transactionsArraySchema,
-  transactionsArrayResponseSchema,
-  TRANSACTION_CATEGORIES,
+  buildCategoryLabels,
+  buildTransactionsArraySchema,
+  buildTransactionsArrayResponseSchema,
 } from '../schemas/transaction';
 
 // text/* files are embedded directly as prompt text (simpler and more
@@ -26,14 +26,16 @@ function toFsPath(uri) {
   return uri.startsWith('file://') ? uri.slice('file://'.length) : uri;
 }
 
-export async function parseTransactionsFromFile({ uri, name, type, size }) {
+export async function parseTransactionsFromFile({ uri, name, type, size, categories }) {
   if (typeof size === 'number' && size > MAX_FILE_BYTES) {
     return { success: false, error: 'That file is too large (max 15MB) — try a smaller export.' };
   }
 
+  const categoryLabels = buildCategoryLabels(categories);
+  const responseSchema = buildTransactionsArrayResponseSchema(categoryLabels);
   const path = toFsPath(uri);
   const today = new Date().toISOString().slice(0, 10);
-  const systemInstruction = `Extract every expense transaction you can find in the attached document/image/text. Today's date is ${today} — resolve relative or partial dates against it. Each transaction's category must be exactly one of: ${TRANSACTION_CATEGORIES.join(', ')} — use "Other" if nothing clearly fits. amount must be a positive number in rupees with no currency symbol or commas. Ignore anything that isn't a real expense (headers, totals, balances).`;
+  const systemInstruction = `Extract every expense transaction you can find in the attached document/image/text. Today's date is ${today} — resolve relative or partial dates against it. Each transaction's category must be exactly one of: ${categoryLabels.join(', ')} — use "Other" if nothing clearly fits. amount must be a positive number in rupees with no currency symbol or commas. Ignore anything that isn't a real expense (headers, totals, balances).`;
 
   let raw;
   try {
@@ -48,14 +50,14 @@ export async function parseTransactionsFromFile({ uri, name, type, size }) {
       raw = await callGemini({
         prompt: `File name: ${name}\n\nContents:\n${text}`,
         systemInstruction,
-        responseSchema: transactionsArrayResponseSchema,
+        responseSchema,
       });
     } else {
       const base64 = await ReactNativeBlobUtil.fs.readFile(path, 'base64');
       raw = await callGemini({
         prompt: `File name: ${name}. Extract the transactions from the attached file.`,
         systemInstruction,
-        responseSchema: transactionsArrayResponseSchema,
+        responseSchema,
         file: { mimeType: type, base64 },
       });
     }
@@ -74,7 +76,7 @@ export async function parseTransactionsFromFile({ uri, name, type, size }) {
     return { success: false, error: "Couldn't find any transactions in that file." };
   }
 
-  const result = transactionsArraySchema.safeParse(parsed);
+  const result = buildTransactionsArraySchema(categoryLabels).safeParse(parsed);
   if (!result.success) {
     return { success: false, error: "Couldn't find any transactions in that file." };
   }
