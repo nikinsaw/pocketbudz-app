@@ -13,6 +13,7 @@ import {
 import { useTheme } from '../theme/ThemeContext';
 import { getActivityDisplay } from '../utils/transactionDisplay';
 import { computeBudgetSummary } from '../utils/budgetSummary';
+import { computeEnvelopeDisplay } from '../utils/envelopeDisplay';
 
 const RECENT_ACTIVITY_LIMIT = 5;
 const BUDGET_PROGRESS_LIMIT = 3;
@@ -22,7 +23,6 @@ function HomeScreen() {
   const styles = getStyles(colors);
   const navigation = useNavigation();
 
-  const categories = useSelector((state) => state.budget.categories);
   const envelopes = useSelector((state) => state.budget.envelopes);
   const transactions = useSelector((state) => state.transactions.items);
   const monthlyIncome = useSelector((state) => state.profile.monthlyIncome);
