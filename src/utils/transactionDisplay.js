@@ -1,18 +1,11 @@
 import { formatRelativeDate } from './formatDate';
 
-// tint references a theme token (pillBg/successTint/warningTint), resolved
-// here at render time so icon backgrounds stay theme-aware — same pattern
-// budgetSlice's colorKey uses for category dot colors.
-const TINT_TOKENS = {
-  teal: (colors) => colors.pillBg,
-  success: (colors) => colors.successTint,
-  warning: (colors) => colors.warningTint,
-};
-
-// Maps a stored Transaction (merchant/category/amount/date/icon/tint) to the
-// display shape ActivityItem renders (name/subtitle/amount/icon/iconBackground).
+// Maps a stored Transaction (merchant/category/amount/date/icon/colorKey) to
+// the display shape ActivityItem renders (name/subtitle/amount/icon/iconBackground).
 // Shared between HomeScreen's "Recent Activity" preview and the full
-// AllTransactionsScreen list so both stay in sync automatically.
+// AllTransactionsScreen list so both stay in sync automatically. colorKey
+// resolves to a `${colorKey}Tint` theme token (theme/palettes.js) — the same
+// colorKey a transaction's category/envelope uses for its solid color.
 export function getActivityDisplay(transaction, colors) {
   return {
     id: transaction.id,
@@ -20,6 +13,6 @@ export function getActivityDisplay(transaction, colors) {
     subtitle: formatRelativeDate(transaction.date),
     amount: transaction.amount.toLocaleString('en-IN'),
     icon: transaction.icon,
-    iconBackground: TINT_TOKENS[transaction.tint](colors),
+    iconBackground: colors[`${transaction.colorKey}Tint`] || colors.pillBg,
   };
 }
