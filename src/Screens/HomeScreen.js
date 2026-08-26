@@ -12,6 +12,7 @@ import {
 } from '../Components/Home';
 import { useTheme } from '../theme/ThemeContext';
 import { getActivityDisplay } from '../utils/transactionDisplay';
+import { computeBudgetSummary } from '../utils/budgetSummary';
 
 const RECENT_ACTIVITY_LIMIT = 5;
 
@@ -20,10 +21,18 @@ function HomeScreen() {
   const styles = getStyles(colors);
   const navigation = useNavigation();
 
-  const savedThisMonth = useSelector((state) => state.budget.savedThisMonth);
-  const guiltFreeToSpend = useSelector((state) => state.budget.guiltFreeToSpend);
   const categories = useSelector((state) => state.budget.categories);
+  const envelopes = useSelector((state) => state.budget.envelopes);
   const transactions = useSelector((state) => state.transactions.items);
+  const monthlyIncome = useSelector((state) => state.profile.monthlyIncome);
+  const budgetCycleStartDay = useSelector((state) => state.profile.budgetCycleStartDay);
+
+  const { savedThisMonth, guiltFreeToSpend } = computeBudgetSummary({
+    envelopes,
+    transactions,
+    monthlyIncome,
+    budgetCycleStartDay,
+  });
 
   const budgetCategories = categories.map((category) => ({
     ...category,
@@ -52,13 +61,16 @@ function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <SavedThisMonthCard
-          amount={savedThisMonth.amount}
-          streakDays={savedThisMonth.streakDays}
-          progress={savedThisMonth.progress}
+          amount={savedThisMonth?.amount}
+          progress={savedThisMonth?.progress}
+          onPress={() => navigation.navigate('EditIncome')}
         />
 
         <View style={styles.spacer} />
-        <GuiltFreeCard amount={guiltFreeToSpend.amount} />
+        <GuiltFreeCard
+          amount={guiltFreeToSpend?.amount}
+          onPress={() => navigation.navigate('EditIncome')}
+        />
 
         <View style={styles.spacerLarge} />
         <BudgetProgressSection categories={budgetCategories} />

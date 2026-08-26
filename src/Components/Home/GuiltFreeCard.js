@@ -3,18 +3,23 @@ import { View, Text, StyleSheet } from 'react-native';
 import BaseCard from '../Common/BaseCard';
 import { useTheme } from '../../theme/ThemeContext';
 
-function GuiltFreeCard({ amount }) {
+function GuiltFreeCard({ amount, onPress }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const isSet = amount != null;
 
   return (
-    <BaseCard style={styles.card}>
-      <View>
+    <BaseCard style={styles.card} clickable onPress={onPress}>
+      <View style={styles.textWrap}>
         <Text style={styles.label}>Guilt-free to spend</Text>
-        <View style={styles.amountRow}>
-          <Text style={styles.amount}>₹{amount}</Text>
-          <Text style={styles.suffix}> left</Text>
-        </View>
+        {isSet ? (
+          <View style={styles.amountRow}>
+            <Text style={styles.amount}>₹{amount}</Text>
+            <Text style={styles.suffix}> left</Text>
+          </View>
+        ) : (
+          <Text style={styles.promptText}>Set your monthly income to see this</Text>
+        )}
       </View>
       <View style={styles.badge}>
         <Text style={styles.badgeGlyph}>🙂</Text>
@@ -29,6 +34,10 @@ const getStyles = (colors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+    },
+    textWrap: {
+      flex: 1,
+      marginRight: 12,
     },
     label: {
       color: colors.textMuted,
@@ -47,6 +56,11 @@ const getStyles = (colors) =>
     suffix: {
       color: colors.textMuted,
       fontSize: 15,
+    },
+    promptText: {
+      color: colors.teal,
+      fontSize: 14,
+      fontWeight: '600',
     },
     badge: {
       width: 48,
