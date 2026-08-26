@@ -1,7 +1,20 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+function generateId() {
+  return `env_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 // colorKey references a token in theme/palettes.js, resolved at render time
 // so category colors stay theme-aware instead of being frozen into state.
+//
+// Envelopes carry a real budgetLimit now (rather than a hand-authored
+// "remaining" string) — BudgetScreen computes spent/remaining/progress from
+// real transactions at render time, matching transaction.category against
+// envelope.title. That match is label-based and only works for the five
+// categories the AI's transactionSchema knows about (Shopping, Dining Out,
+// Transport, Rent, Other) — a custom envelope category (e.g. "School Fees")
+// won't accumulate spend until the AI schema is made category-list-aware,
+// a separate follow-up.
 const initialState = {
   savedThisMonth: {
     amount: '12,400',
@@ -19,35 +32,40 @@ const initialState = {
   },
   envelopes: [
     {
+      id: 'env_seed_1',
+      categoryKey: 'shopping',
       icon: '🛍️',
       title: 'Shopping',
-      subtitle: 'Guilt-free zone',
-      amount: '8,500',
-      amountLabel: 'left',
+      colorKey: 'giftsJewelry',
+      type: 'spending',
+      budgetLimit: 10000,
     },
     {
+      id: 'env_seed_2',
+      categoryKey: 'diningOut',
       icon: '🍴',
       title: 'Dining Out',
-      subtitle: 'Treat yourself',
-      amount: '4,200',
-      amountLabel: 'left',
+      colorKey: 'dining',
+      type: 'spending',
+      budgetLimit: 5000,
     },
     {
+      id: 'env_seed_3',
+      categoryKey: 'transport',
       icon: '🚗',
       title: 'Transport',
-      subtitle: 'Nearing limit',
-      amount: '500',
-      amountLabel: 'left',
-      warning: true,
+      colorKey: 'travel',
+      type: 'spending',
+      budgetLimit: 1000,
     },
     {
+      id: 'env_seed_4',
+      categoryKey: 'rent',
       icon: '🏠',
       title: 'Rent',
-      subtitle: 'Fixed',
-      amount: '32,000',
-      amountLabel: 'set aside',
-      locked: true,
-      progress: 0.8,
+      colorKey: 'householdSupplies',
+      type: 'fixed',
+      budgetLimit: 32000,
     },
   ],
   categories: [
@@ -60,7 +78,27 @@ const initialState = {
 const budgetSlice = createSlice({
   name: 'budget',
   initialState,
-  reducers: {},
+  reducers: {
+    addEnvelope: {
+      reducer(state, action) {
+        state.envelopes.push(action.payload);
+      },
+      prepare({ categoryKey, icon, title, colorKey, type, budgetLimit }) {
+        return {
+          payload: {
+            id: generateId(),
+            categoryKey,
+            icon,
+            title,
+            colorKey,
+            type,
+            budgetLimit,
+          },
+        };
+      },
+    },
+  },
 });
 
+export const { addEnvelope } = budgetSlice.actions;
 export default budgetSlice.reducer;
