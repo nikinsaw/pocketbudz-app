@@ -10,11 +10,8 @@ function generateId() {
 // Envelopes carry a real budgetLimit now (rather than a hand-authored
 // "remaining" string) — BudgetScreen computes spent/remaining/progress from
 // real transactions at render time, matching transaction.category against
-// envelope.title. That match is label-based and only works for the five
-// categories the AI's transactionSchema knows about (Shopping, Dining Out,
-// Transport, Rent, Other) — a custom envelope category (e.g. "School Fees")
-// won't accumulate spend until the AI schema is made category-list-aware,
-// a separate follow-up.
+// envelope.title (label-based; works for any category since both come from
+// profile.categories).
 const initialState = {
   savedThisMonth: {
     amount: '12,400',

@@ -8,10 +8,9 @@ import { useTheme } from '../theme/ThemeContext';
 
 const WARNING_THRESHOLD = 0.85;
 
-// Matches a transaction to an envelope by category label — only works for
-// the five categories the AI's transactionSchema knows about (Shopping,
-// Dining Out, Transport, Rent, Other). A custom envelope category won't
-// accumulate spend until that schema is made category-list-aware.
+// Matches a transaction to an envelope by category label — works for any
+// category since both a transaction's category and an envelope's title
+// ultimately come from the same profile.categories list.
 function computeEnvelopeDisplay(envelope, transactions) {
   const spent = transactions
     .filter((transaction) => transaction.category === envelope.title)
