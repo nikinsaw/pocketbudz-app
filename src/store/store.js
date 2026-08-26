@@ -15,12 +15,14 @@ import settingsReducer from './slices/settingsSlice';
 import budgetReducer from './slices/budgetSlice';
 import transactionsReducer from './slices/transactionsSlice';
 import insightsReducer from './slices/insightsSlice';
+import profileReducer from './slices/profileSlice';
 
 const rootReducer = combineReducers({
   settings: settingsReducer,
   budget: budgetReducer,
   transactions: transactionsReducer,
   insights: insightsReducer,
+  profile: profileReducer,
 });
 
 // Bump this whenever a persisted slice's shape changes (renamed/removed
@@ -29,7 +31,7 @@ const rootReducer = combineReducers({
 // state rather than rehydrating a shape the reducers no longer expect —
 // which is what caused "cannot read property length of undefined" when
 // insights.totalSaved.months became .series.
-const PERSIST_VERSION = 4;
+const PERSIST_VERSION = 5;
 
 const persistConfig = {
   key: 'pocketbudz-root',
