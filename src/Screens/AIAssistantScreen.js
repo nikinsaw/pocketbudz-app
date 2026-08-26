@@ -10,7 +10,13 @@ import {
   Pressable,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import DocumentPicker, { types as DocumentType } from 'react-native-document-picker';
+import {
+  pick,
+  keepLocalCopy,
+  types as DocumentType,
+  isErrorWithCode,
+  errorCodes,
+} from '@react-native-documents/picker';
 import CustomHeader from '../Components/Common/CustomHeader';
 import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
@@ -20,12 +26,15 @@ import { parseTransactionFromPrompt } from '../services/aiTransactionParser';
 import { parseTransactionsFromFile } from '../services/aiDocumentImport';
 import { addTransaction } from '../store/slices/transactionsSlice';
 
+// .flat() because DocumentType.csv is a 2-element array on Android (both
+// "text/csv" and "text/comma-separated-values" mime variants) but a single
+// string elsewhere — flat() normalizes both into one flat type list.
 const IMPORT_FILE_TYPES = [
   DocumentType.csv,
   DocumentType.plainText,
   DocumentType.images,
   DocumentType.pdf,
-];
+].flat();
 
 function AIAssistantScreen() {
   const { colors } = useTheme();
@@ -91,12 +100,10 @@ function AIAssistantScreen() {
   const handlePickFile = async () => {
     let picked;
     try {
-      picked = await DocumentPicker.pickSingle({
-        type: IMPORT_FILE_TYPES,
-        copyTo: 'cachesDirectory',
-      });
+      const [result] = await pick({ type: IMPORT_FILE_TYPES });
+      picked = result;
     } catch (error) {
-      if (DocumentPicker.isCancel(error)) {
+      if (isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED) {
         return;
       }
       setImportStatus('error');
@@ -108,8 +115,21 @@ function AIAssistantScreen() {
     setImportError('');
     setImportCandidates([]);
 
+    // pick() may hand back a content:// uri (Android) that isn't safe to
+    // assume a plain filesystem reader can open — keepLocalCopy guarantees
+    // a real local path first, same guarantee the old copyTo option gave.
+    const [copy] = await keepLocalCopy({
+      files: [{ uri: picked.uri, fileName: picked.name || 'import' }],
+      destination: 'cachesDirectory',
+    });
+    if (copy.status !== 'success') {
+      setImportError("Couldn't read that file — try again.");
+      setImportStatus('error');
+      return;
+    }
+
     const result = await parseTransactionsFromFile({
-      uri: picked.fileCopyUri || picked.uri,
+      uri: copy.localUri,
       name: picked.name,
       type: picked.type,
       size: picked.size,
