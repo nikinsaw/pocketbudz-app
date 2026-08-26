@@ -15,6 +15,7 @@ import { getActivityDisplay } from '../utils/transactionDisplay';
 import { computeBudgetSummary } from '../utils/budgetSummary';
 
 const RECENT_ACTIVITY_LIMIT = 5;
+const BUDGET_PROGRESS_LIMIT = 3;
 
 function HomeScreen() {
   const { colors, isDark } = useTheme();
@@ -34,10 +35,15 @@ function HomeScreen() {
     budgetCycleStartDay,
   });
 
-  const budgetCategories = categories.map((category) => ({
-    ...category,
-    color: colors[category.colorKey],
-  }));
+  // Top 3 by usage — the most actionable envelopes to surface on a Home
+  // preview — regardless of type, then handed off to the Budget tab (via
+  // See All) for the full list. Mirrors BudgetScreen's own computation so
+  // the numbers always agree.
+  const topEnvelopes = [...envelopes]
+    .map((envelope) => computeEnvelopeDisplay(envelope, transactions))
+    .sort((a, b) => b.progress - a.progress)
+    .slice(0, BUDGET_PROGRESS_LIMIT)
+    .map((envelope) => ({ ...envelope, color: colors[envelope.colorKey] }));
 
   // Insertion order isn't guaranteed to match date order once backdated
   // ("yesterday") or bulk-imported transactions mix in, so sort explicitly
@@ -73,7 +79,10 @@ function HomeScreen() {
         />
 
         <View style={styles.spacerLarge} />
-        <BudgetProgressSection categories={budgetCategories} />
+        <BudgetProgressSection
+          envelopes={topEnvelopes}
+          onSeeAll={() => navigation.navigate('Budget')}
+        />
 
         <View style={styles.spacerLarge} />
         <RecentActivitySection

@@ -55,11 +55,6 @@ const initialState = {
       budgetLimit: 32000,
     },
   ],
-  categories: [
-    { name: 'Dining', icon: '🍴', remaining: '2,400', progress: 0.6, colorKey: 'dining' },
-    { name: 'Groceries', icon: '🛒', remaining: '4,100', progress: 0.3, colorKey: 'groceries' },
-    { name: 'Travel', icon: '🚗', remaining: '900', progress: 0.85, colorKey: 'travel' },
-  ],
 };
 
 const budgetSlice = createSlice({
