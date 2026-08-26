@@ -18,14 +18,22 @@ export class AIUnavailableError extends Error {
 }
 
 // Plain fetch, no SDK. Callers pass either a bare `prompt` for a free-text
-// answer, or add `responseSchema` to force structured JSON output.
-export async function callGemini({ prompt, systemInstruction, responseSchema }) {
+// answer, or add `responseSchema` to force structured JSON output. `file`
+// (optional) is { mimeType, base64 } for image/PDF understanding — sent as
+// an inline_data part alongside the text (field names verified against the
+// live generateContent docs: snake_case inline_data/mime_type, not camelCase).
+export async function callGemini({ prompt, systemInstruction, responseSchema, file }) {
   if (!GEMINI_API_KEY) {
     throw new AIUnavailableError('missing-key');
   }
 
+  const parts = [{ text: prompt }];
+  if (file) {
+    parts.push({ inline_data: { mime_type: file.mimeType, data: file.base64 } });
+  }
+
   const body = {
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts }],
   };
   if (systemInstruction) {
     body.systemInstruction = { parts: [{ text: systemInstruction }] };

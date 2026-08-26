@@ -7,15 +7,34 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import {
+  pick,
+  keepLocalCopy,
+  types as DocumentType,
+  isErrorWithCode,
+  errorCodes,
+} from '@react-native-documents/picker';
 import CustomHeader from '../Components/Common/CustomHeader';
 import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
 import { getSpendingInsight } from '../services/aiInsights';
 import { parseTransactionFromPrompt } from '../services/aiTransactionParser';
+import { parseTransactionsFromFile } from '../services/aiDocumentImport';
 import { addTransaction } from '../store/slices/transactionsSlice';
+
+// .flat() because DocumentType.csv is a 2-element array on Android (both
+// "text/csv" and "text/comma-separated-values" mime variants) but a single
+// string elsewhere — flat() normalizes both into one flat type list.
+const IMPORT_FILE_TYPES = [
+  DocumentType.csv,
+  DocumentType.plainText,
+  DocumentType.images,
+  DocumentType.pdf,
+].flat();
 
 function AIAssistantScreen() {
   const { colors } = useTheme();
@@ -34,6 +53,11 @@ function AIAssistantScreen() {
   const [entryStatus, setEntryStatus] = useState('idle'); // idle | loading | error | success
   const [entryError, setEntryError] = useState('');
   const [addedTransaction, setAddedTransaction] = useState(null);
+
+  const [importStatus, setImportStatus] = useState('idle'); // idle | loading | review | error | success
+  const [importError, setImportError] = useState('');
+  const [importCandidates, setImportCandidates] = useState([]);
+  const [importedCount, setImportedCount] = useState(0);
 
   const handleAsk = async () => {
     if (!question.trim() || askStatus === 'loading') {
@@ -72,6 +96,78 @@ function AIAssistantScreen() {
       setEntryStatus('error');
     }
   };
+
+  const handlePickFile = async () => {
+    let picked;
+    try {
+      const [result] = await pick({ type: IMPORT_FILE_TYPES });
+      picked = result;
+    } catch (error) {
+      if (isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED) {
+        return;
+      }
+      setImportStatus('error');
+      setImportError("Couldn't open that file — try again.");
+      return;
+    }
+
+    setImportStatus('loading');
+    setImportError('');
+    setImportCandidates([]);
+
+    // pick() may hand back a content:// uri (Android) that isn't safe to
+    // assume a plain filesystem reader can open — keepLocalCopy guarantees
+    // a real local path first, same guarantee the old copyTo option gave.
+    const [copy] = await keepLocalCopy({
+      files: [{ uri: picked.uri, fileName: picked.name || 'import' }],
+      destination: 'cachesDirectory',
+    });
+    if (copy.status !== 'success') {
+      setImportError("Couldn't read that file — try again.");
+      setImportStatus('error');
+      return;
+    }
+
+    const result = await parseTransactionsFromFile({
+      uri: copy.localUri,
+      name: picked.name,
+      type: picked.type,
+      size: picked.size,
+    });
+
+    if (result.success) {
+      setImportCandidates(result.transactions.map((t) => ({ ...t, selected: true })));
+      setImportStatus('review');
+    } else {
+      setImportError(result.error);
+      setImportStatus('error');
+    }
+  };
+
+  const toggleCandidate = (index) => {
+    setImportCandidates((prev) =>
+      prev.map((candidate, i) =>
+        i === index ? { ...candidate, selected: !candidate.selected } : candidate,
+      ),
+    );
+  };
+
+  const handleConfirmImport = () => {
+    const selected = importCandidates.filter((candidate) => candidate.selected);
+    selected.forEach(({ selected: _selected, ...transaction }) => {
+      dispatch(addTransaction(transaction));
+    });
+    setImportedCount(selected.length);
+    setImportCandidates([]);
+    setImportStatus('success');
+  };
+
+  const handleCancelImport = () => {
+    setImportCandidates([]);
+    setImportStatus('idle');
+  };
+
+  const selectedCount = importCandidates.filter((c) => c.selected).length;
 
   return (
     <View style={styles.screen}>
@@ -139,6 +235,72 @@ function AIAssistantScreen() {
               </Text>
             ) : null}
           </BaseCard>
+
+          <View style={styles.spacer} />
+
+          <Text style={styles.sectionTitle}>Import from a file</Text>
+          <BaseCard style={styles.card}>
+            <Text style={styles.helperText}>
+              A bank/UPI statement (CSV), a receipt photo, or a PDF statement. Extracted
+              transactions are shown for review before anything is added.
+            </Text>
+
+            {importStatus !== 'review' ? (
+              <BaseButton
+                onPress={handlePickFile}
+                disabled={importStatus === 'loading'}
+                style={styles.button}
+              >
+                <Text style={styles.buttonLabel}>
+                  {importStatus === 'loading' ? 'Reading…' : 'Choose file'}
+                </Text>
+              </BaseButton>
+            ) : null}
+
+            {importStatus === 'error' && importError ? (
+              <Text style={styles.errorText}>{importError}</Text>
+            ) : null}
+
+            {importStatus === 'success' ? (
+              <Text style={styles.answerText}>
+                Added {importedCount} transaction{importedCount === 1 ? '' : 's'}.
+              </Text>
+            ) : null}
+
+            {importStatus === 'review' ? (
+              <View style={styles.reviewList}>
+                {importCandidates.map((candidate, index) => (
+                  <Pressable
+                    key={`${candidate.merchant}-${candidate.date}-${index}`}
+                    onPress={() => toggleCandidate(index)}
+                    style={[styles.reviewRow, !candidate.selected && styles.reviewRowUnselected]}
+                  >
+                    <Text style={styles.reviewCheck}>{candidate.selected ? '☑' : '☐'}</Text>
+                    <View style={styles.reviewDetails}>
+                      <Text style={styles.reviewMerchant}>{candidate.merchant}</Text>
+                      <Text style={styles.reviewMeta}>
+                        {candidate.category} · {candidate.date}
+                      </Text>
+                    </View>
+                    <Text style={styles.reviewAmount}>₹{candidate.amount}</Text>
+                  </Pressable>
+                ))}
+
+                <View style={styles.reviewActions}>
+                  <BaseButton onPress={handleCancelImport} style={styles.buttonSecondary}>
+                    <Text style={styles.buttonSecondaryLabel}>Cancel</Text>
+                  </BaseButton>
+                  <BaseButton
+                    onPress={handleConfirmImport}
+                    disabled={selectedCount === 0}
+                    style={[styles.button, selectedCount === 0 && styles.buttonDisabled]}
+                  >
+                    <Text style={styles.buttonLabel}>Add {selectedCount} selected</Text>
+                  </BaseButton>
+                </View>
+              </View>
+            ) : null}
+          </BaseCard>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -178,6 +340,12 @@ const getStyles = (colors) =>
       padding: 12,
       marginBottom: 12,
     },
+    helperText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      lineHeight: 18,
+      marginBottom: 12,
+    },
     button: {
       alignSelf: 'flex-start',
       backgroundColor: colors.gradientStart,
@@ -185,8 +353,25 @@ const getStyles = (colors) =>
       paddingVertical: 10,
       paddingHorizontal: 20,
     },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
     buttonLabel: {
       color: colors.white,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    buttonSecondary: {
+      alignSelf: 'flex-start',
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+    },
+    buttonSecondaryLabel: {
+      color: colors.textMuted,
       fontSize: 14,
       fontWeight: '700',
     },
@@ -203,6 +388,48 @@ const getStyles = (colors) =>
     },
     spacer: {
       height: 28,
+    },
+    reviewList: {
+      marginTop: 4,
+    },
+    reviewRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+    },
+    reviewRowUnselected: {
+      opacity: 0.4,
+    },
+    reviewCheck: {
+      fontSize: 18,
+      color: colors.teal,
+      marginRight: 12,
+      width: 20,
+    },
+    reviewDetails: {
+      flex: 1,
+    },
+    reviewMerchant: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    reviewMeta: {
+      color: colors.textMuted,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    reviewAmount: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    reviewActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 16,
     },
   });
 
