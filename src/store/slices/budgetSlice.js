@@ -8,13 +8,10 @@ function generateId() {
 // so category colors stay theme-aware instead of being frozen into state.
 //
 // Envelopes carry a real budgetLimit now (rather than a hand-authored
-// "remaining" string) — BudgetScreen computes spent/remaining/progress from
-// real transactions at render time, matching transaction.category against
-// envelope.title. That match is label-based and only works for the five
-// categories the AI's transactionSchema knows about (Shopping, Dining Out,
-// Transport, Rent, Other) — a custom envelope category (e.g. "School Fees")
-// won't accumulate spend until the AI schema is made category-list-aware,
-// a separate follow-up.
+// "remaining" string) — BudgetScreen and HomeScreen's Budget Progress
+// preview both compute spent/remaining/progress from real transactions at
+// render time (src/utils/envelopeDisplay.js), matching transaction.category
+// against envelope.title.
 const initialState = {
   savedThisMonth: {
     amount: '12,400',
@@ -67,11 +64,6 @@ const initialState = {
       type: 'fixed',
       budgetLimit: 32000,
     },
-  ],
-  categories: [
-    { name: 'Dining', icon: '🍴', remaining: '2,400', progress: 0.6, colorKey: 'dining' },
-    { name: 'Groceries', icon: '🛒', remaining: '4,100', progress: 0.3, colorKey: 'groceries' },
-    { name: 'Travel', icon: '🚗', remaining: '900', progress: 0.85, colorKey: 'travel' },
   ],
 };
 

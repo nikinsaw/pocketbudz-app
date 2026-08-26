@@ -1,16 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import BaseCard from '../Common/BaseCard';
 import { useTheme } from '../../theme/ThemeContext';
 
-function BudgetProgressItem({ icon, name, remaining, progress, color, styles }) {
+function BudgetProgressItem({ icon, title, amount, amountLabel, progress, color, styles }) {
   return (
     <View style={styles.item}>
       <View style={styles.itemHeader}>
         <Text style={styles.itemLabel}>
-          {icon} {name}
+          {icon} {title}
         </Text>
-        <Text style={styles.itemAmount}>₹{remaining} left</Text>
+        <Text style={styles.itemAmount}>
+          ₹{amount} {amountLabel}
+        </Text>
       </View>
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${Math.round(progress * 100)}%`, backgroundColor: color }]} />
@@ -19,20 +21,22 @@ function BudgetProgressItem({ icon, name, remaining, progress, color, styles }) 
   );
 }
 
-function BudgetProgressSection({ categories }) {
+function BudgetProgressSection({ envelopes, onSeeAll }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
   return (
     <View>
-      <Text style={styles.sectionTitle}>Budget Progress</Text>
+      <View style={styles.header}>
+        <Text style={styles.sectionTitle}>Budget Progress</Text>
+        <Pressable onPress={onSeeAll}>
+          <Text style={styles.seeAll}>See All</Text>
+        </Pressable>
+      </View>
       <BaseCard>
-        {categories.map((category, index) => (
-          <View
-            key={category.name}
-            style={index !== categories.length - 1 && styles.itemWrapper}
-          >
-            <BudgetProgressItem {...category} styles={styles} />
+        {envelopes.map((envelope, index) => (
+          <View key={envelope.id} style={index !== envelopes.length - 1 && styles.itemWrapper}>
+            <BudgetProgressItem {...envelope} styles={styles} />
           </View>
         ))}
       </BaseCard>
@@ -42,11 +46,21 @@ function BudgetProgressSection({ categories }) {
 
 const getStyles = (colors) =>
   StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
     sectionTitle: {
       color: colors.text,
       fontSize: 20,
       fontWeight: '800',
-      marginBottom: 14,
+    },
+    seeAll: {
+      color: colors.teal,
+      fontSize: 15,
+      fontWeight: '600',
     },
     itemWrapper: {
       marginBottom: 22,
