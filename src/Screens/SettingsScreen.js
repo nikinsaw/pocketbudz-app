@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, Alert } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import { HomeHeader } from '../Components/Home';
 import { ProfileCard, SettingsSection } from '../Components/Settings';
 import { useTheme } from '../theme/ThemeContext';
@@ -10,16 +11,32 @@ import {
   toggleWeeklySummary,
   setAppLockEnabled,
 } from '../store/slices/settingsSlice';
+import { resetOnboarding } from '../store/slices/profileSlice';
 import { isBiometricAvailable, enableAppLock, disableAppLock } from '../storage/appLock';
+import { CURRENCY_FORMATS, CYCLE_START_OPTIONS } from '../data/onboardingQuestions';
 
 function SettingsScreen() {
   const { colors, isDark, setIsDark } = useTheme();
   const styles = getStyles(colors);
   const dispatch = useDispatch();
+  const navigation = useNavigation();
 
   const { budgetAlerts, streakReminders, weeklySummary, appLockEnabled } = useSelector(
     (state) => state.settings,
   );
+  const profile = useSelector((state) => state.profile);
+
+  const currencyLabel =
+    CURRENCY_FORMATS.find((format) => format.key === profile.currencyFormat)?.label ??
+    'Indian (₹ Lakhs)';
+  const cycleLabel =
+    CYCLE_START_OPTIONS.find((option) => option.key === profile.budgetCycleStartDay)?.label ??
+    '1st of the month';
+
+  const handleEditProfile = () => {
+    dispatch(resetOnboarding());
+    navigation.navigate('Onboarding');
+  };
 
   const handleToggleAppLock = async (next) => {
     if (next) {
@@ -40,8 +57,15 @@ function SettingsScreen() {
 
   const preferenceRows = [
     { icon: '🌙', label: 'Dark Mode', type: 'toggle', toggled: isDark, onToggle: setIsDark },
-    { icon: '₹', label: 'Currency Format', type: 'nav', value: 'Indian (Lakhs)' },
-    { icon: '📅', label: 'Budget Cycle Start', type: 'nav', value: '1st of month' },
+    { icon: '₹', label: 'Currency Format', type: 'nav', value: currencyLabel, onPress: handleEditProfile },
+    {
+      icon: '📅',
+      label: 'Budget Cycle Start',
+      type: 'nav',
+      value: cycleLabel,
+      onPress: handleEditProfile,
+    },
+    { icon: '🔄', label: 'Retake Onboarding', type: 'nav', onPress: handleEditProfile },
   ];
 
   const securityRows = [
@@ -98,7 +122,11 @@ function SettingsScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <ProfileCard name="Aditi Sharma" email="aditi.sharma@email.com" onPress={() => {}} />
+        <ProfileCard
+          name={profile.name || 'Add your name'}
+          email="Tap to edit your profile"
+          onPress={handleEditProfile}
+        />
 
         <View style={styles.spacerLarge} />
         <SettingsSection title="Preferences" rows={preferenceRows} />

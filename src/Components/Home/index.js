@@ -3,6 +3,7 @@ import SavedThisMonthCard from './SavedThisMonthCard';
 import GuiltFreeCard from './GuiltFreeCard';
 import BudgetProgressSection from './BudgetProgressSection';
 import RecentActivitySection from './RecentActivitySection';
+import ActivityItem from './ActivityItem';
 
 export {
   HomeHeader,
@@ -10,4 +11,5 @@ export {
   GuiltFreeCard,
   BudgetProgressSection,
   RecentActivitySection,
+  ActivityItem,
 };

@@ -11,8 +11,10 @@ import InsightsScreen from './src/Screens/InsightsScreen';
 import BudgetScreen from './src/Screens/BudgetScreen';
 import SettingsScreen from './src/Screens/SettingsScreen';
 import AIAssistantScreen from './src/Screens/AIAssistantScreen';
+import AllTransactionsScreen from './src/Screens/AllTransactionsScreen';
+import OnboardingScreen from './src/Screens/OnboardingScreen';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
-import { Provider as StoreProvider } from 'react-redux';
+import { Provider as StoreProvider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './src/store/store';
 import AppLockGate from './src/Components/AppLock/AppLockGate';
@@ -93,6 +95,29 @@ function MyTabs({ navigation }) {
   );
 }
 
+function RootNavigator() {
+  // initialRouteName is only read on first mount, which is fine here —
+  // hasCompletedOnboarding starts false and flips true exactly once, at
+  // which point OnboardingScreen itself navigates away with replace().
+  const hasCompletedOnboarding = useSelector((state) => state.profile.hasCompletedOnboarding);
+
+  return (
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName={hasCompletedOnboarding ? 'Tabs' : 'Onboarding'}
+    >
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+      <Stack.Screen name="Tabs" component={MyTabs} />
+      <Stack.Screen
+        name="AIAssistant"
+        component={AIAssistantScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen name="AllTransactions" component={AllTransactionsScreen} />
+    </Stack.Navigator>
+  );
+}
+
 function App() {
   return (
     <SafeAreaProvider>
@@ -101,14 +126,7 @@ function App() {
           <ThemeProvider>
             <AppLockGate>
               <NavigationContainer>
-                <Stack.Navigator screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="Tabs" component={MyTabs} />
-                  <Stack.Screen
-                    name="AIAssistant"
-                    component={AIAssistantScreen}
-                    options={{ presentation: 'modal' }}
-                  />
-                </Stack.Navigator>
+                <RootNavigator />
               </NavigationContainer>
             </AppLockGate>
           </ThemeProvider>
