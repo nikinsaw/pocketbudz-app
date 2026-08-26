@@ -5,10 +5,13 @@ const initialState = {
   name: '',
   currencyFormat: 'indian',
   budgetCycleStartDay: 1,
+  // null until the user sets it (Budget screen's SafeToSpendCard prompts
+  // for it) — everything derived from income (SafeToSpendCard,
+  // SavedThisMonthCard, GuiltFreeCard) shows an empty-state prompt instead
+  // of a number until this is set. See src/utils/budgetSummary.js.
+  monthlyIncome: null,
   // Resulting personalized category list from onboarding (BASE_CATEGORIES +
-  // whichever CATEGORY_QUESTIONS answers produced a category). Not yet
-  // consumed by budgetSlice's Home Budget Progress display — that needs a
-  // real budget-limit concept first, deliberately left for a later pass.
+  // whichever CATEGORY_QUESTIONS answers produced a category).
   categories: [],
   // Raw answers keyed by question id, so "retake onboarding" can pre-fill
   // rather than starting blank.
@@ -31,6 +34,9 @@ const profileSlice = createSlice({
     resetOnboarding: (state) => {
       state.hasCompletedOnboarding = false;
     },
+    setMonthlyIncome: (state, action) => {
+      state.monthlyIncome = action.payload;
+    },
     addCategory: (state, action) => {
       const { key, label, icon, colorKey } = action.payload;
       // No-op if it already exists (e.g. double-submit) rather than a
@@ -43,5 +49,6 @@ const profileSlice = createSlice({
   },
 });
 
-export const { completeOnboarding, resetOnboarding, addCategory } = profileSlice.actions;
+export const { completeOnboarding, resetOnboarding, addCategory, setMonthlyIncome } =
+  profileSlice.actions;
 export default profileSlice.reducer;
