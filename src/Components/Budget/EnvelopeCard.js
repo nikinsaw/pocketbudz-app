@@ -3,12 +3,26 @@ import { View, Text, StyleSheet } from 'react-native';
 import BaseCard from '../Common/BaseCard';
 import { useTheme } from '../../theme/ThemeContext';
 
-function EnvelopeCard({ icon, title, subtitle, amount, amountLabel, warning, locked, progress }) {
+function EnvelopeCard({
+  icon,
+  title,
+  subtitle,
+  amount,
+  amountLabel,
+  warning,
+  locked,
+  progress,
+  onPress,
+}) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
   return (
-    <BaseCard style={[styles.card, warning && styles.cardWarning]}>
+    <BaseCard
+      clickable={!!onPress}
+      onPress={onPress}
+      style={[styles.card, warning && styles.cardWarning]}
+    >
       <View style={styles.header}>
         <View style={[styles.iconWrap, warning && styles.iconWrapWarning]}>
           <Text style={styles.icon}>{icon}</Text>

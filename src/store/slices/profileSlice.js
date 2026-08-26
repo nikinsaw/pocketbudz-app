@@ -31,8 +31,17 @@ const profileSlice = createSlice({
     resetOnboarding: (state) => {
       state.hasCompletedOnboarding = false;
     },
+    addCategory: (state, action) => {
+      const { key, label, icon, colorKey } = action.payload;
+      // No-op if it already exists (e.g. double-submit) rather than a
+      // visible duplicate in every category picker from here on.
+      if (state.categories.some((category) => category.key === key)) {
+        return;
+      }
+      state.categories.push({ key, label, icon, colorKey });
+    },
   },
 });
 
-export const { completeOnboarding, resetOnboarding } = profileSlice.actions;
+export const { completeOnboarding, resetOnboarding, addCategory } = profileSlice.actions;
 export default profileSlice.reducer;

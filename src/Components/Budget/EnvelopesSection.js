@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import EnvelopeCard from './EnvelopeCard';
 import CreateEnvelopeButton from './CreateEnvelopeButton';
 import { useTheme } from '../../theme/ThemeContext';
 
-function EnvelopesSection({ envelopes, onEdit, onCreate }) {
+function EnvelopesSection({ envelopes, onEditEnvelope, onCreate }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
@@ -12,13 +12,14 @@ function EnvelopesSection({ envelopes, onEdit, onCreate }) {
     <View>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>Your Envelopes</Text>
-        <Pressable onPress={onEdit}>
-          <Text style={styles.edit}>Edit</Text>
-        </Pressable>
       </View>
 
       {envelopes.map((envelope) => (
-        <EnvelopeCard key={envelope.title} {...envelope} />
+        <EnvelopeCard
+          key={envelope.id ?? envelope.title}
+          {...envelope}
+          onPress={onEditEnvelope ? () => onEditEnvelope(envelope) : undefined}
+        />
       ))}
 
       <CreateEnvelopeButton onPress={onCreate} />
@@ -38,11 +39,6 @@ const getStyles = (colors) =>
       color: colors.text,
       fontSize: 24,
       fontWeight: '800',
-    },
-    edit: {
-      color: colors.teal,
-      fontSize: 15,
-      fontWeight: '600',
     },
   });
 
