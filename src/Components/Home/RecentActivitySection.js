@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import ActivityItem from './ActivityItem';
 
-function RecentActivitySection({ activities, onSeeAll }) {
+function RecentActivitySection({ activities, onSeeAll, onEditActivity }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
@@ -16,7 +16,11 @@ function RecentActivitySection({ activities, onSeeAll }) {
         </Pressable>
       </View>
       {activities.map((activity, index) => (
-        <ActivityItem key={activity.id ?? index} {...activity} />
+        <ActivityItem
+          key={activity.id ?? index}
+          {...activity}
+          onPress={onEditActivity ? () => onEditActivity(activity.id) : undefined}
+        />
       ))}
     </View>
   );

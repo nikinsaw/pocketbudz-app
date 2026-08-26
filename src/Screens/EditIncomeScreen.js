@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import CustomHeader from '../Components/Common/CustomHeader';
@@ -39,37 +33,38 @@ function EditIncomeScreen() {
   return (
     <View style={styles.screen}>
       <CustomHeader title="Monthly Income" leftAction="close" />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={20}
       >
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>How much do you earn per month?</Text>
-          <Text style={styles.helperText}>
-            Used to work out what's safe to spend, your guilt-free budget, and how much you're
-            saving each cycle.
-          </Text>
+        <Text style={styles.sectionTitle}>How much do you earn per month?</Text>
+        <Text style={styles.helperText}>
+          Used to work out what's safe to spend, your guilt-free budget, and how much you're
+          saving each cycle.
+        </Text>
 
-          <View style={styles.amountInputWrap}>
-            <Text style={styles.amountPrefix}>₹</Text>
-            <TextInput
-              value={income}
-              onChangeText={setIncome}
-              placeholder="0"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numeric"
-              style={styles.amountInput}
-              autoFocus
-            />
-          </View>
-
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-          <BaseButton onPress={handleSave} style={styles.saveButton}>
-            <Text style={styles.saveButtonLabel}>Save</Text>
-          </BaseButton>
+        <View style={styles.amountInputWrap}>
+          <Text style={styles.amountPrefix}>₹</Text>
+          <TextInput
+            value={income}
+            onChangeText={setIncome}
+            placeholder="0"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="numeric"
+            style={styles.amountInput}
+            autoFocus
+          />
         </View>
-      </KeyboardAvoidingView>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        <BaseButton onPress={handleSave} style={styles.saveButton}>
+          <Text style={styles.saveButtonLabel}>Save</Text>
+        </BaseButton>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -79,9 +74,6 @@ const getStyles = (colors) =>
     screen: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    flex: {
-      flex: 1,
     },
     content: {
       paddingHorizontal: 20,

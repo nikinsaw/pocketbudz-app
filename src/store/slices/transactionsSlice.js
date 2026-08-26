@@ -43,13 +43,18 @@ const initialState = {
   ],
 };
 
+function resolveCategoryDisplay(categories, category) {
+  const match = categories.find((item) => item.label === category);
+  return { icon: match?.icon || FALLBACK_ICON, colorKey: match?.colorKey || FALLBACK_COLOR_KEY };
+}
+
 const transactionsSlice = createSlice({
   name: 'transactions',
   initialState,
   reducers: {
-    // icon/colorKey are resolved by the addTransaction thunk below (it has
-    // access to profile.categories); this internal action just stores
-    // whatever it's given, with an id assigned.
+    // icon/colorKey are resolved by the addTransaction/updateTransaction
+    // thunks below (they have access to profile.categories); these internal
+    // actions just store whatever they're given.
     transactionAdded: {
       reducer(state, action) {
         state.items.unshift(action.payload);
@@ -60,27 +65,58 @@ const transactionsSlice = createSlice({
         };
       },
     },
+    transactionUpdated: (state, action) => {
+      const { id, merchant, category, amount, date, icon, colorKey } = action.payload;
+      const transaction = state.items.find((item) => item.id === id);
+      if (!transaction) {
+        return;
+      }
+      transaction.merchant = merchant;
+      transaction.category = category;
+      transaction.amount = amount;
+      transaction.date = date;
+      transaction.icon = icon;
+      transaction.colorKey = colorKey;
+    },
+    deleteTransaction: (state, action) => {
+      state.items = state.items.filter((item) => item.id !== action.payload);
+    },
   },
 });
 
-export const { transactionAdded } = transactionsSlice.actions;
+export const { transactionAdded, transactionUpdated, deleteTransaction } =
+  transactionsSlice.actions;
 
-// Callers (AI quick-add, document import, future manual entry) only supply
-// the fields a human or the model would know — icon/colorKey always come
-// from the user's real category list so a transaction's look matches its
+// Callers (AI quick-add, document import, manual entry) only supply the
+// fields a human or the model would know — icon/colorKey always come from
+// the user's real category list so a transaction's look matches its
 // envelope/category everywhere else in the app.
 export function addTransaction({ merchant, category, amount, date }) {
   return (dispatch, getState) => {
     const categories = getState().profile.categories;
-    const match = categories.find((item) => item.label === category);
     dispatch(
       transactionAdded({
         merchant,
         category,
         amount,
         date,
-        icon: match?.icon || FALLBACK_ICON,
-        colorKey: match?.colorKey || FALLBACK_COLOR_KEY,
+        ...resolveCategoryDisplay(categories, category),
+      }),
+    );
+  };
+}
+
+export function updateTransaction({ id, merchant, category, amount, date }) {
+  return (dispatch, getState) => {
+    const categories = getState().profile.categories;
+    dispatch(
+      transactionUpdated({
+        id,
+        merchant,
+        category,
+        amount,
+        date,
+        ...resolveCategoryDisplay(categories, category),
       }),
     );
   };

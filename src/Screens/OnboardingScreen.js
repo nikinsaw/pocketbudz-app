@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import CustomHeader from '../Components/Common/CustomHeader';
@@ -225,13 +226,15 @@ function OnboardingScreen() {
         </Pressable>
       ) : null}
 
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={20}
       >
         {renderStep()}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
