@@ -11,36 +11,12 @@ function generateId() {
   return `txn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// No seed transactions — a fresh install starts genuinely empty rather
+// than showing fake demo purchases (Blue Tokai, Blinkit, Netflix)
+// presented as if they were the user's own history. RecentActivitySection
+// and AllTransactionsScreen both render an empty state instead.
 const initialState = {
-  items: [
-    {
-      id: 'txn_seed_1',
-      merchant: 'Blue Tokai',
-      category: 'Dining Out',
-      amount: 350,
-      date: '2026-08-24',
-      icon: '☕',
-      colorKey: 'dining',
-    },
-    {
-      id: 'txn_seed_2',
-      merchant: 'Blinkit',
-      category: 'Shopping',
-      amount: 820,
-      date: '2026-08-23',
-      icon: '🛍️',
-      colorKey: 'giftsJewelry',
-    },
-    {
-      id: 'txn_seed_3',
-      merchant: 'Netflix',
-      category: 'Other',
-      amount: 649,
-      date: '2026-08-12',
-      icon: '📺',
-      colorKey: FALLBACK_COLOR_KEY,
-    },
-  ],
+  items: [],
 };
 
 function resolveCategoryDisplay(categories, category) {

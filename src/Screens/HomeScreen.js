@@ -89,6 +89,7 @@ function HomeScreen() {
           activities={recentActivities}
           onSeeAll={() => navigation.navigate('AllTransactions')}
           onEditActivity={(id) => navigation.navigate('ManageTransaction', { transactionId: id })}
+          onAddTransaction={() => navigation.navigate('ManageTransaction')}
         />
       </ScrollView>
     </View>
