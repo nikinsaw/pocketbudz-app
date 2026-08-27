@@ -21,25 +21,40 @@ function BudgetProgressItem({ icon, title, amount, amountLabel, progress, color,
   );
 }
 
-function BudgetProgressSection({ envelopes, onSeeAll }) {
+function BudgetProgressSection({ envelopes, onSeeAll, onCreateEnvelope }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const isEmpty = envelopes.length === 0;
 
   return (
     <View>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>Budget Progress</Text>
-        <Pressable onPress={onSeeAll}>
-          <Text style={styles.seeAll}>See All</Text>
-        </Pressable>
+        {!isEmpty ? (
+          <Pressable onPress={onSeeAll}>
+            <Text style={styles.seeAll}>See All</Text>
+          </Pressable>
+        ) : null}
       </View>
-      <BaseCard>
-        {envelopes.map((envelope, index) => (
-          <View key={envelope.id} style={index !== envelopes.length - 1 && styles.itemWrapper}>
-            <BudgetProgressItem {...envelope} styles={styles} />
-          </View>
-        ))}
-      </BaseCard>
+
+      {isEmpty ? (
+        <BaseCard clickable onPress={onCreateEnvelope} style={styles.emptyCard}>
+          <Text style={styles.emptyIcon}>🎯</Text>
+          <Text style={styles.emptyTitle}>No budgets yet</Text>
+          <Text style={styles.emptyMessage}>
+            Create an envelope to start tracking what you spend.
+          </Text>
+          <Text style={styles.emptyCta}>＋ Create Envelope</Text>
+        </BaseCard>
+      ) : (
+        <BaseCard>
+          {envelopes.map((envelope, index) => (
+            <View key={envelope.id} style={index !== envelopes.length - 1 && styles.itemWrapper}>
+              <BudgetProgressItem {...envelope} styles={styles} />
+            </View>
+          ))}
+        </BaseCard>
+      )}
     </View>
   );
 }
@@ -90,6 +105,33 @@ const getStyles = (colors) =>
     fill: {
       height: '100%',
       borderRadius: 3,
+    },
+    emptyCard: {
+      alignItems: 'center',
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: colors.teal,
+    },
+    emptyIcon: {
+      fontSize: 28,
+      marginBottom: 8,
+    },
+    emptyTitle: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '700',
+      marginBottom: 4,
+    },
+    emptyMessage: {
+      color: colors.textMuted,
+      fontSize: 13,
+      textAlign: 'center',
+      marginBottom: 14,
+    },
+    emptyCta: {
+      color: colors.teal,
+      fontSize: 15,
+      fontWeight: '700',
     },
   });
 
