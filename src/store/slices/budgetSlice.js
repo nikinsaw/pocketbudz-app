@@ -16,45 +16,13 @@ function generateId() {
 // mock objects — they're now derived from profile.monthlyIncome + envelopes
 // + transactions at render time instead (src/utils/budgetSummary.js), same
 // reasoning as envelopes above.
+//
+// No seed envelopes — a fresh install starts genuinely empty rather than
+// pre-populated with fake demo envelopes, and BudgetProgressSection /
+// EnvelopesSection both render an empty state prompting the user to create
+// their first one instead.
 const initialState = {
-  envelopes: [
-    {
-      id: 'env_seed_1',
-      categoryKey: 'shopping',
-      icon: '🛍️',
-      title: 'Shopping',
-      colorKey: 'giftsJewelry',
-      type: 'spending',
-      budgetLimit: 10000,
-    },
-    {
-      id: 'env_seed_2',
-      categoryKey: 'diningOut',
-      icon: '🍴',
-      title: 'Dining Out',
-      colorKey: 'dining',
-      type: 'spending',
-      budgetLimit: 5000,
-    },
-    {
-      id: 'env_seed_3',
-      categoryKey: 'transport',
-      icon: '🚗',
-      title: 'Transport',
-      colorKey: 'travel',
-      type: 'spending',
-      budgetLimit: 1000,
-    },
-    {
-      id: 'env_seed_4',
-      categoryKey: 'rent',
-      icon: '🏠',
-      title: 'Rent',
-      colorKey: 'householdSupplies',
-      type: 'fixed',
-      budgetLimit: 32000,
-    },
-  ],
+  envelopes: [],
 };
 
 const budgetSlice = createSlice({

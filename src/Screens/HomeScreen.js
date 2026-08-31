@@ -82,6 +82,7 @@ function HomeScreen() {
         <BudgetProgressSection
           envelopes={topEnvelopes}
           onSeeAll={() => navigation.navigate('Budget')}
+          onCreateEnvelope={() => navigation.navigate('CreateEnvelope')}
         />
 
         <View style={styles.spacerLarge} />
