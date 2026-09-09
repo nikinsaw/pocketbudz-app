@@ -46,9 +46,16 @@ const profileSlice = createSlice({
       }
       state.categories.push({ key, label, icon, colorKey });
     },
+    // Callers must check the category isn't referenced by any envelope or
+    // transaction first (ManageCategoriesScreen does this) — this reducer
+    // only has its own slice's state, not budget/transactions, so it can't
+    // enforce that itself.
+    deleteCategory: (state, action) => {
+      state.categories = state.categories.filter((category) => category.key !== action.payload);
+    },
   },
 });
 
-export const { completeOnboarding, resetOnboarding, addCategory, setMonthlyIncome } =
+export const { completeOnboarding, resetOnboarding, addCategory, deleteCategory, setMonthlyIncome } =
   profileSlice.actions;
 export default profileSlice.reducer;

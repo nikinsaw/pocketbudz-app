@@ -66,6 +66,12 @@ function SettingsScreen() {
       onPress: handleEditProfile,
     },
     { icon: '🔄', label: 'Retake Onboarding', type: 'nav', onPress: handleEditProfile },
+    {
+      icon: '🏷️',
+      label: 'Categories',
+      type: 'nav',
+      onPress: () => navigation.navigate('ManageCategories'),
+    },
   ];
 
   const securityRows = [
