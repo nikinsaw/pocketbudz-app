@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, Alert } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -7,7 +7,7 @@ import CustomHeader from '../Components/Common/CustomHeader';
 import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
-import { addEnvelope, updateEnvelope } from '../store/slices/budgetSlice';
+import { addEnvelope, updateEnvelope, deleteEnvelope } from '../store/slices/budgetSlice';
 import { addCategory } from '../store/slices/profileSlice';
 
 // Rotated through for custom categories a user adds inline, since asking
@@ -109,6 +109,20 @@ function CreateEnvelopeScreen() {
     navigation.goBack();
   };
 
+  const handleDelete = () => {
+    Alert.alert('Delete envelope?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          dispatch(deleteEnvelope(editingEnvelope.id));
+          navigation.goBack();
+        },
+      },
+    ]);
+  };
+
   return (
     <View style={styles.screen}>
       <CustomHeader title={isEditing ? 'Edit Envelope' : 'New Envelope'} leftAction="close" />
@@ -199,6 +213,12 @@ function CreateEnvelopeScreen() {
               {isEditing ? 'Save Changes' : 'Create Envelope'}
             </Text>
           </BaseButton>
+
+          {isEditing ? (
+            <Pressable onPress={handleDelete} style={styles.deleteButton}>
+              <Text style={styles.deleteButtonLabel}>Delete Envelope</Text>
+            </Pressable>
+          ) : null}
       </KeyboardAwareScrollView>
     </View>
   );
@@ -336,6 +356,16 @@ const getStyles = (colors) =>
     createButtonLabel: {
       color: colors.white,
       fontSize: 16,
+      fontWeight: '700',
+    },
+    deleteButton: {
+      alignItems: 'center',
+      marginTop: 20,
+      padding: 8,
+    },
+    deleteButtonLabel: {
+      color: colors.dining,
+      fontSize: 15,
       fontWeight: '700',
     },
   });
