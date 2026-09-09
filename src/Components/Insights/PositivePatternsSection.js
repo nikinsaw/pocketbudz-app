@@ -24,11 +24,17 @@ function PositivePatternsSection({ patterns }) {
   return (
     <View>
       <Text style={styles.sectionTitle}>Positive Patterns</Text>
-      {patterns.map((pattern, index) => (
-        <View key={pattern.title} style={index !== patterns.length - 1 && styles.spacing}>
-          <PositivePatternCard {...pattern} styles={styles} />
-        </View>
-      ))}
+      {patterns.length === 0 ? (
+        <Text style={styles.emptyText}>
+          Patterns will show up here once you've got some spending history.
+        </Text>
+      ) : (
+        patterns.map((pattern, index) => (
+          <View key={pattern.title} style={index !== patterns.length - 1 && styles.spacing}>
+            <PositivePatternCard {...pattern} styles={styles} />
+          </View>
+        ))
+      )}
     </View>
   );
 }
@@ -43,6 +49,11 @@ const getStyles = (colors) =>
     },
     spacing: {
       marginBottom: 14,
+    },
+    emptyText: {
+      color: colors.textMuted,
+      fontSize: 14,
+      lineHeight: 20,
     },
     card: {
       flexDirection: 'row',
