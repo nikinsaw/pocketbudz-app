@@ -60,8 +60,11 @@ const budgetSlice = createSlice({
       envelope.type = type;
       envelope.budgetLimit = budgetLimit;
     },
+    deleteEnvelope: (state, action) => {
+      state.envelopes = state.envelopes.filter((envelope) => envelope.id !== action.payload);
+    },
   },
 });
 
-export const { addEnvelope, updateEnvelope } = budgetSlice.actions;
+export const { addEnvelope, updateEnvelope, deleteEnvelope } = budgetSlice.actions;
 export default budgetSlice.reducer;
