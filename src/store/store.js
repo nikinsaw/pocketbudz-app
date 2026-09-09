@@ -14,14 +14,12 @@ import {
 import settingsReducer from './slices/settingsSlice';
 import budgetReducer from './slices/budgetSlice';
 import transactionsReducer from './slices/transactionsSlice';
-import insightsReducer from './slices/insightsSlice';
 import profileReducer from './slices/profileSlice';
 
 const rootReducer = combineReducers({
   settings: settingsReducer,
   budget: budgetReducer,
   transactions: transactionsReducer,
-  insights: insightsReducer,
   profile: profileReducer,
 });
 
