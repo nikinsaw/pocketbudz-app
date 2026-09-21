@@ -12,3 +12,15 @@ export function formatRelativeDate(isoDate) {
   if (diffDays === 1) return 'Yesterday';
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
+
+// "YYYY-MM" — sortable/comparable grouping key for a transaction's month,
+// independent of its display label below.
+export function getMonthKey(isoDate) {
+  return isoDate.slice(0, 7);
+}
+
+// "September 2026" — the section header label for a transaction's month.
+export function formatMonthYear(isoDate) {
+  const date = new Date(`${isoDate}T00:00:00`);
+  return date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+}
