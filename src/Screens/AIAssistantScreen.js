@@ -9,6 +9,7 @@ import {
   isErrorWithCode,
   errorCodes,
 } from '@react-native-documents/picker';
+import { launchCamera } from 'react-native-image-picker';
 import CustomHeader from '../Components/Common/CustomHeader';
 import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
@@ -90,6 +91,22 @@ function AIAssistantScreen() {
     }
   };
 
+  const runImport = async ({ uri, name, type, size }) => {
+    setImportStatus('loading');
+    setImportError('');
+    setImportCandidates([]);
+
+    const result = await parseTransactionsFromFile({ uri, name, type, size, categories });
+
+    if (result.success) {
+      setImportCandidates(result.transactions.map((t) => ({ ...t, selected: true })));
+      setImportStatus('review');
+    } else {
+      setImportError(result.error);
+      setImportStatus('error');
+    }
+  };
+
   const handlePickFile = async () => {
     let picked;
     try {
@@ -104,10 +121,6 @@ function AIAssistantScreen() {
       return;
     }
 
-    setImportStatus('loading');
-    setImportError('');
-    setImportCandidates([]);
-
     // pick() may hand back a content:// uri (Android) that isn't safe to
     // assume a plain filesystem reader can open — keepLocalCopy guarantees
     // a real local path first, same guarantee the old copyTo option gave.
@@ -121,21 +134,47 @@ function AIAssistantScreen() {
       return;
     }
 
-    const result = await parseTransactionsFromFile({
-      uri: copy.localUri,
-      name: picked.name,
-      type: picked.type,
-      size: picked.size,
-      categories,
-    });
+    await runImport({ uri: copy.localUri, name: picked.name, type: picked.type, size: picked.size });
+  };
 
-    if (result.success) {
-      setImportCandidates(result.transactions.map((t) => ({ ...t, selected: true })));
-      setImportStatus('review');
-    } else {
-      setImportError(result.error);
+  const handleScanBill = async () => {
+    let response;
+    try {
+      response = await launchCamera({
+        mediaType: 'photo',
+        saveToPhotos: false,
+        quality: 0.8,
+      });
+    } catch (error) {
       setImportStatus('error');
+      setImportError("Couldn't open the camera — try again.");
+      return;
     }
+
+    if (response.didCancel || response.errorCode) {
+      if (response.errorCode === 'camera_unavailable') {
+        setImportStatus('error');
+        setImportError('No camera available on this device.');
+      } else if (response.errorCode === 'permission') {
+        setImportStatus('error');
+        setImportError('Camera permission is required to scan a bill — enable it in Settings.');
+      }
+      return;
+    }
+
+    const asset = response.assets?.[0];
+    if (!asset?.uri) {
+      setImportStatus('error');
+      setImportError("Couldn't capture that photo — try again.");
+      return;
+    }
+
+    await runImport({
+      uri: asset.uri,
+      name: asset.fileName || 'receipt.jpg',
+      type: asset.type || 'image/jpeg',
+      size: asset.fileSize,
+    });
   };
 
   const toggleCandidate = (index) => {
@@ -238,15 +277,26 @@ function AIAssistantScreen() {
             </Text>
 
             {importStatus !== 'review' ? (
-              <BaseButton
-                onPress={handlePickFile}
-                disabled={importStatus === 'loading'}
-                style={styles.button}
-              >
-                <Text style={styles.buttonLabel}>
-                  {importStatus === 'loading' ? 'Reading…' : 'Choose file'}
-                </Text>
-              </BaseButton>
+              <View style={styles.importButtonRow}>
+                <BaseButton
+                  onPress={handleScanBill}
+                  disabled={importStatus === 'loading'}
+                  style={styles.button}
+                >
+                  <Text style={styles.buttonLabel}>
+                    {importStatus === 'loading' ? 'Reading…' : 'Scan a bill'}
+                  </Text>
+                </BaseButton>
+                <BaseButton
+                  onPress={handlePickFile}
+                  disabled={importStatus === 'loading'}
+                  style={styles.buttonSecondary}
+                >
+                  <Text style={styles.buttonSecondaryLabel}>
+                    {importStatus === 'loading' ? 'Reading…' : 'Choose file'}
+                  </Text>
+                </BaseButton>
+              </View>
             ) : null}
 
             {importStatus === 'error' && importError ? (
@@ -333,6 +383,10 @@ const getStyles = (colors) =>
       fontSize: 13,
       lineHeight: 18,
       marginBottom: 12,
+    },
+    importButtonRow: {
+      flexDirection: 'row',
+      gap: 10,
     },
     button: {
       alignSelf: 'flex-start',
