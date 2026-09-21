@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
 
 function HomeHeader() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
@@ -14,8 +16,18 @@ function HomeHeader() {
         <Text style={styles.avatarGlyph}>👤</Text>
       </View>
       <Text style={styles.title}>PocketBudz</Text>
-      <View style={styles.bell}>
-        <Text style={styles.bellGlyph}>🔔</Text>
+      <View style={styles.actions}>
+        <Pressable
+          onPress={() => navigation.navigate('AskSpending')}
+          style={styles.iconButton}
+          accessibilityRole="button"
+          accessibilityLabel="Ask about your spending"
+        >
+          <Text style={styles.iconGlyph}>💬</Text>
+        </Pressable>
+        <View style={styles.iconButton}>
+          <Text style={styles.iconGlyph}>🔔</Text>
+        </View>
       </View>
     </View>
   );
@@ -48,11 +60,16 @@ const getStyles = (colors) =>
       color: colors.text,
       letterSpacing: 0.3,
     },
-    bell: {
+    actions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    iconButton: {
       width: 32,
       alignItems: 'center',
     },
-    bellGlyph: {
+    iconGlyph: {
       fontSize: 22,
     },
   });
