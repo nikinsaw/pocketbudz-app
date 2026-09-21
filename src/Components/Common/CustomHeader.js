@@ -14,6 +14,7 @@ function CustomHeader({
   leftAction = 'back',
   onLeftPress,
   disableSystemBack = false,
+  rightContent,
 }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -54,7 +55,7 @@ function CustomHeader({
         {title}
       </Text>
 
-      <View style={styles.side} />
+      <View style={[styles.side, styles.rightSide]}>{rightContent}</View>
     </View>
   );
 }
@@ -72,6 +73,11 @@ const getStyles = (colors) =>
       width: 40,
       alignItems: 'flex-start',
       justifyContent: 'center',
+    },
+    rightSide: {
+      width: undefined,
+      minWidth: 40,
+      alignItems: 'flex-end',
     },
     icon: {
       fontSize: 26,

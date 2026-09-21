@@ -57,10 +57,14 @@ const transactionsSlice = createSlice({
     deleteTransaction: (state, action) => {
       state.items = state.items.filter((item) => item.id !== action.payload);
     },
+    deleteTransactions: (state, action) => {
+      const ids = new Set(action.payload);
+      state.items = state.items.filter((item) => !ids.has(item.id));
+    },
   },
 });
 
-export const { transactionAdded, transactionUpdated, deleteTransaction } =
+export const { transactionAdded, transactionUpdated, deleteTransaction, deleteTransactions } =
   transactionsSlice.actions;
 
 // Callers (AI quick-add, document import, manual entry) only supply the
