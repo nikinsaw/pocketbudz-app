@@ -84,10 +84,18 @@ export function computeBudgetSummary({
   // are set aside and today's discretionary spend is accounted for.
   const guiltFreeAmount = Math.max(monthlyIncome - totalFixedBudget - spentOnSpendingEnvelopes, 0);
 
-  // "Saved this month" mirrors safe-to-spend (unspent income is, by
-  // definition, still saved) — progress shows what fraction of income is
-  // still unspent, so the bar fills as spending stays low.
-  const savedProgress = Math.min(Math.max(safeToSpendAmount / monthlyIncome, 0), 1);
+  // Projected savings by month-end: extrapolate the average daily spend
+  // seen so far across the whole cycle, rather than showing income-minus-
+  // spent-so-far — that number mechanically shrinks with every purchase
+  // regardless of pace, which reads as "savings are draining" even on a
+  // day where spending was completely normal. This instead answers "at
+  // this rate, how much will I have saved by the end of the cycle?", so it
+  // stays roughly stable when spending pace is steady and only moves when
+  // the pace actually changes.
+  const dailyAverageSpend = totalSpentThisCycle / cycle.daysElapsed;
+  const projectedTotalSpend = dailyAverageSpend * cycle.daysTotal;
+  const projectedSavingsAmount = Math.max(monthlyIncome - projectedTotalSpend, 0);
+  const projectedSavingsProgress = Math.min(Math.max(projectedSavingsAmount / monthlyIncome, 0), 1);
 
   return {
     hasIncome: true,
@@ -101,8 +109,10 @@ export function computeBudgetSummary({
       amount: guiltFreeAmount.toLocaleString('en-IN'),
     },
     savedThisMonth: {
-      amount: safeToSpendAmount.toLocaleString('en-IN'),
-      progress: savedProgress,
+      // Rounded to the rupee — it's an estimate extrapolated from a daily
+      // average, so paise-level precision would be false confidence.
+      amount: Math.round(projectedSavingsAmount).toLocaleString('en-IN'),
+      progress: projectedSavingsProgress,
     },
   };
 }

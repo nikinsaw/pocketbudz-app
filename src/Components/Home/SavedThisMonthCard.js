@@ -23,7 +23,7 @@ function SavedThisMonthCard({ amount, progress, onPress }) {
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <Text style={styles.label}>SAVED THIS MONTH</Text>
+      <Text style={styles.label}>PROJECTED SAVINGS</Text>
       {isSet ? (
         <>
           <Text style={styles.amount}>₹{amount}</Text>
