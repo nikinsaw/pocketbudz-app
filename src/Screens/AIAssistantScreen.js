@@ -49,6 +49,7 @@ function AIAssistantScreen() {
   const [addedTransaction, setAddedTransaction] = useState(null);
 
   const [importStatus, setImportStatus] = useState('idle'); // idle | loading | review | error | success
+  const [importSource, setImportSource] = useState(null); // 'camera' | 'file' — which button triggered the current import
   const [importError, setImportError] = useState('');
   const [importCandidates, setImportCandidates] = useState([]);
   const [importedCount, setImportedCount] = useState(0);
@@ -108,6 +109,7 @@ function AIAssistantScreen() {
   };
 
   const handlePickFile = async () => {
+    setImportSource('file');
     let picked;
     try {
       const [result] = await pick({ type: IMPORT_FILE_TYPES });
@@ -138,6 +140,7 @@ function AIAssistantScreen() {
   };
 
   const handleScanBill = async () => {
+    setImportSource('camera');
     let response;
     try {
       response = await launchCamera({
@@ -284,7 +287,7 @@ function AIAssistantScreen() {
                   style={styles.button}
                 >
                   <Text style={styles.buttonLabel}>
-                    {importStatus === 'loading' ? 'Reading…' : 'Scan a bill'}
+                    {importStatus === 'loading' && importSource === 'camera' ? 'Reading…' : 'Scan a bill'}
                   </Text>
                 </BaseButton>
                 <BaseButton
@@ -293,7 +296,7 @@ function AIAssistantScreen() {
                   style={styles.buttonSecondary}
                 >
                   <Text style={styles.buttonSecondaryLabel}>
-                    {importStatus === 'loading' ? 'Reading…' : 'Choose file'}
+                    {importStatus === 'loading' && importSource === 'file' ? 'Reading…' : 'Choose file'}
                   </Text>
                 </BaseButton>
               </View>
