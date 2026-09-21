@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, SectionList, Pressable, Alert } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import CustomHeader from '../Components/Common/CustomHeader';
@@ -8,6 +8,7 @@ import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
 import { getActivityDisplay } from '../utils/transactionDisplay';
+import { getMonthKey, formatMonthYear } from '../utils/formatDate';
 import { deleteTransactions, mergeTransactions } from '../store/slices/transactionsSlice';
 
 function AddTransactionButton({ onPress, styles }) {
@@ -32,6 +33,20 @@ function AllTransactionsScreen() {
   const sortedTransactions = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
   const activities = sortedTransactions.map((transaction) => getActivityDisplay(transaction, colors));
   const allSelected = activities.length > 0 && selectedIds.length === activities.length;
+
+  // Transactions are already sorted newest-first, so walking them in order
+  // and starting a new section whenever the month changes keeps sections in
+  // the same newest-first order with no separate sort step.
+  const sections = [];
+  const sectionsByMonth = {};
+  sortedTransactions.forEach((transaction, index) => {
+    const monthKey = getMonthKey(transaction.date);
+    if (!sectionsByMonth[monthKey]) {
+      sectionsByMonth[monthKey] = { title: formatMonthYear(transaction.date), data: [] };
+      sections.push(sectionsByMonth[monthKey]);
+    }
+    sectionsByMonth[monthKey].data.push(activities[index]);
+  });
 
   const exitSelectionMode = () => {
     setSelectionMode(false);
@@ -132,8 +147,8 @@ function AllTransactionsScreen() {
           <Text style={styles.selectionCount}>{selectedIds.length} selected</Text>
         </View>
       ) : null}
-      <FlatList
-        data={activities}
+      <SectionList
+        sections={sections}
         keyExtractor={(item, index) => item.id ?? String(index)}
         renderItem={({ item }) => (
           <ActivityItem
@@ -148,6 +163,10 @@ function AllTransactionsScreen() {
             }
           />
         )}
+        renderSectionHeader={({ section }) => (
+          <Text style={styles.sectionHeader}>{section.title}</Text>
+        )}
+        stickySectionHeadersEnabled={false}
         ListHeaderComponent={
           selectionMode ? null : (
             <AddTransactionButton
@@ -214,6 +233,16 @@ const getStyles = (colors) =>
       fontSize: 14,
       textAlign: 'center',
       marginTop: 40,
+    },
+    sectionHeader: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      backgroundColor: colors.background,
+      paddingTop: 12,
+      paddingBottom: 10,
     },
     headerAction: {
       color: colors.teal,
