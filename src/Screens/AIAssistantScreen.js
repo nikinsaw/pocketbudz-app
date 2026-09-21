@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSelector, useDispatch } from 'react-redux';
@@ -15,7 +15,6 @@ import CustomHeader from '../Components/Common/CustomHeader';
 import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
-import { getSpendingInsight } from '../services/aiInsights';
 import { parseTransactionFromPrompt } from '../services/aiTransactionParser';
 import { parseTransactionsFromFile } from '../services/aiDocumentImport';
 import { addTransaction } from '../store/slices/transactionsSlice';
@@ -36,14 +35,7 @@ function AIAssistantScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
 
-  const transactions = useSelector((state) => state.transactions.items);
-  const envelopes = useSelector((state) => state.budget.envelopes);
   const categories = useSelector((state) => state.profile.categories);
-
-  const [question, setQuestion] = useState('');
-  const [askStatus, setAskStatus] = useState('idle'); // idle | loading | error
-  const [answer, setAnswer] = useState('');
-  const [askError, setAskError] = useState('');
 
   const [entryText, setEntryText] = useState('');
   const [entryStatus, setEntryStatus] = useState('idle'); // idle | loading | error | success
@@ -55,24 +47,6 @@ function AIAssistantScreen() {
   const [importError, setImportError] = useState('');
   const [importCandidates, setImportCandidates] = useState([]);
   const [importedCount, setImportedCount] = useState(0);
-
-  const handleAsk = async () => {
-    if (!question.trim() || askStatus === 'loading') {
-      return;
-    }
-    setAskStatus('loading');
-    setAskError('');
-    setAnswer('');
-
-    const result = await getSpendingInsight(question.trim(), transactions, envelopes);
-    if (result.success) {
-      setAnswer(result.text);
-      setAskStatus('idle');
-    } else {
-      setAskError(result.error);
-      setAskStatus('error');
-    }
-  };
 
   const handleQuickAdd = async () => {
     if (!entryText.trim() || entryStatus === 'loading') {
@@ -94,7 +68,7 @@ function AIAssistantScreen() {
     }
   };
 
-  const runImport = async ({ uri, name, type, size, source }) => {
+  const runImport = async ({ uri, name, type, size }) => {
     setImportStatus('loading');
     setImportError('');
     setImportCandidates([]);
@@ -107,12 +81,12 @@ function AIAssistantScreen() {
       return;
     }
 
-    // A scanned bill is almost always a single receipt — send it to the
-    // same edit screen used for manual entries, prefilled, so the user can
-    // fix anything Gemini misread before it touches their budget. A
-    // statement/CSV import (or a photo with multiple line items) still goes
-    // through the bulk checkbox review below.
-    if (source === 'camera' && result.transactions.length === 1) {
+    // A single extracted transaction — whether from a scanned photo or a
+    // single-row file — goes to the same Add/Edit screen used for manual
+    // entries, prefilled, so the user can fix anything Gemini misread
+    // before it touches their budget. Multiple rows (a CSV/PDF statement)
+    // still go through the bulk checkbox review below.
+    if (result.transactions.length === 1) {
       setImportStatus('idle');
       navigation.navigate('ManageTransaction', {
         draftTransaction: result.transactions[0],
@@ -156,13 +130,7 @@ function AIAssistantScreen() {
       return;
     }
 
-    await runImport({
-      uri: copy.localUri,
-      name: picked.name,
-      type: picked.type,
-      size: picked.size,
-      source: 'file',
-    });
+    await runImport({ uri: copy.localUri, name: picked.name, type: picked.type, size: picked.size });
   };
 
   const handleScanBill = async () => {
@@ -203,9 +171,16 @@ function AIAssistantScreen() {
       name: asset.fileName || 'receipt.jpg',
       type: asset.type || 'image/jpeg',
       size: asset.fileSize,
-      source: 'camera',
     });
   };
+
+  // Tapping the tab bar's + button lands here — jump straight into the
+  // camera instead of making the user tap "Scan a bill" again. Runs once
+  // per visit (a fresh push of this screen), not on every re-render.
+  useEffect(() => {
+    handleScanBill();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleCandidate = (index) => {
     setImportCandidates((prev) =>
@@ -234,7 +209,7 @@ function AIAssistantScreen() {
 
   return (
     <View style={styles.screen}>
-      <CustomHeader title="AI Assistant" leftAction="close" />
+      <CustomHeader title="Quick Add" leftAction="close" />
       <KeyboardAwareScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -242,33 +217,7 @@ function AIAssistantScreen() {
         enableOnAndroid
         extraScrollHeight={20}
       >
-        <Text style={styles.sectionTitle}>Ask about your spending</Text>
-          <BaseCard style={styles.card}>
-            <TextInput
-              value={question}
-              onChangeText={setQuestion}
-              placeholder="e.g. Where did I overspend this month?"
-              placeholderTextColor={colors.textMuted}
-              style={styles.input}
-              multiline
-            />
-            <BaseButton
-              onPress={handleAsk}
-              disabled={askStatus === 'loading'}
-              style={styles.button}
-            >
-              <Text style={styles.buttonLabel}>
-                {askStatus === 'loading' ? 'Thinking…' : 'Ask'}
-              </Text>
-            </BaseButton>
-
-            {askError ? <Text style={styles.errorText}>{askError}</Text> : null}
-            {answer ? <Text style={styles.answerText}>{answer}</Text> : null}
-          </BaseCard>
-
-          <View style={styles.spacer} />
-
-          <Text style={styles.sectionTitle}>Quick add via text</Text>
+        <Text style={styles.sectionTitle}>Quick add via text</Text>
           <BaseCard style={styles.card}>
             <TextInput
               value={entryText}
@@ -299,11 +248,12 @@ function AIAssistantScreen() {
 
           <View style={styles.spacer} />
 
-          <Text style={styles.sectionTitle}>Import from a file</Text>
+          <Text style={styles.sectionTitle}>Scan or import a bill</Text>
           <BaseCard style={styles.card}>
             <Text style={styles.helperText}>
-              A bank/UPI statement (CSV), a receipt photo, or a PDF statement. Extracted
-              transactions are shown for review before anything is added.
+              The camera opens automatically — cancel it to add via text instead, choose
+              a bank/UPI statement (CSV), a receipt photo, or a PDF. Extracted transactions
+              are shown for review before anything is added.
             </Text>
 
             {importStatus !== 'review' ? (

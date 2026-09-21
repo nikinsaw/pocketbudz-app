@@ -11,6 +11,7 @@ import InsightsScreen from './src/Screens/InsightsScreen';
 import BudgetScreen from './src/Screens/BudgetScreen';
 import SettingsScreen from './src/Screens/SettingsScreen';
 import AIAssistantScreen from './src/Screens/AIAssistantScreen';
+import AskSpendingScreen from './src/Screens/AskSpendingScreen';
 import AllTransactionsScreen from './src/Screens/AllTransactionsScreen';
 import OnboardingScreen from './src/Screens/OnboardingScreen';
 import CreateEnvelopeScreen from './src/Screens/CreateEnvelopeScreen';
@@ -115,6 +116,11 @@ function RootNavigator() {
       <Stack.Screen
         name="AIAssistant"
         component={AIAssistantScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="AskSpending"
+        component={AskSpendingScreen}
         options={{ presentation: 'modal' }}
       />
       <Stack.Screen name="AllTransactions" component={AllTransactionsScreen} />
