@@ -252,10 +252,18 @@ function AIAssistantScreen() {
 
             {entryError ? <Text style={styles.errorText}>{entryError}</Text> : null}
             {addedTransaction ? (
-              <Text style={styles.answerText}>
-                Added: {addedTransaction.merchant} · ₹{addedTransaction.amount} ·{' '}
-                {addedTransaction.category} · {addedTransaction.date}
-              </Text>
+              <>
+                <Text style={styles.answerText}>
+                  Added: {addedTransaction.merchant} · ₹{addedTransaction.amount} ·{' '}
+                  {addedTransaction.category} · {addedTransaction.date}
+                </Text>
+                <BaseButton
+                  onPress={() => navigation.goBack()}
+                  style={styles.doneButton}
+                >
+                  <Text style={styles.buttonLabel}>Done</Text>
+                </BaseButton>
+              </>
             ) : null}
           </BaseCard>
 
@@ -399,6 +407,14 @@ const getStyles = (colors) =>
     },
     buttonDisabled: {
       opacity: 0.5,
+    },
+    doneButton: {
+      alignSelf: 'stretch',
+      backgroundColor: colors.gradientStart,
+      borderRadius: 12,
+      paddingVertical: 12,
+      alignItems: 'center',
+      marginTop: 16,
     },
     buttonLabel: {
       color: colors.white,
