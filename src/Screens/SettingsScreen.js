@@ -15,6 +15,8 @@ import { resetOnboarding } from '../store/slices/profileSlice';
 import { isBiometricAvailable, enableAppLock, disableAppLock } from '../storage/appLock';
 import { CURRENCY_FORMATS, CYCLE_START_OPTIONS } from '../data/onboardingQuestions';
 import { exportTransactionsToCsv } from '../services/exportTransactions';
+import { importTransactionsFromFile } from '../services/importTransactions';
+import { addTransaction } from '../store/slices/transactionsSlice';
 
 function SettingsScreen() {
   const { colors, isDark, setIsDark } = useTheme();
@@ -29,6 +31,7 @@ function SettingsScreen() {
   const transactions = useSelector((state) => state.transactions.items);
 
   const [exportStatus, setExportStatus] = useState('idle'); // idle | exporting
+  const [importStatus, setImportStatus] = useState('idle'); // idle | importing
 
   const currencyLabel =
     CURRENCY_FORMATS.find((format) => format.key === profile.currencyFormat)?.label ??
@@ -53,6 +56,30 @@ function SettingsScreen() {
     if (!result.success && !result.cancelled) {
       Alert.alert("Couldn't export", result.error);
     }
+  };
+
+  const handleImportTransactions = async () => {
+    if (importStatus === 'importing') {
+      return;
+    }
+    setImportStatus('importing');
+    const result = await importTransactionsFromFile(profile.categories);
+    setImportStatus('idle');
+
+    if (!result.success) {
+      if (!result.cancelled) {
+        Alert.alert("Couldn't import", result.error);
+      }
+      return;
+    }
+
+    result.transactions.forEach((transaction) => dispatch(addTransaction(transaction)));
+
+    const skippedNote = result.skipped > 0 ? ` (${result.skipped} row${result.skipped === 1 ? '' : 's'} skipped)` : '';
+    Alert.alert(
+      'Import complete',
+      `Added ${result.transactions.length} transaction${result.transactions.length === 1 ? '' : 's'}${skippedNote}.`,
+    );
   };
 
   const handleToggleAppLock = async (next) => {
@@ -132,6 +159,13 @@ function SettingsScreen() {
       type: 'nav',
       value: exportStatus === 'exporting' ? 'Exporting…' : `${transactions.length}`,
       onPress: handleExportTransactions,
+    },
+    {
+      icon: '📥',
+      label: 'Import Transactions',
+      type: 'nav',
+      value: importStatus === 'importing' ? 'Importing…' : undefined,
+      onPress: handleImportTransactions,
     },
   ];
 
