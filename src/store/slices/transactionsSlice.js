@@ -61,11 +61,30 @@ const transactionsSlice = createSlice({
       const ids = new Set(action.payload);
       state.items = state.items.filter((item) => !ids.has(item.id));
     },
+    // Replaces the given ids with one combined transaction — used to merge
+    // several line items from the same receipt (same date + merchant) that
+    // an import split apart, back into a single entry.
+    transactionsMerged: {
+      reducer(state, action) {
+        const { ids, merchant, category, amount, date, icon, colorKey } = action.payload;
+        const idSet = new Set(ids);
+        state.items = state.items.filter((item) => !idSet.has(item.id));
+        state.items.unshift({ id: generateId(), merchant, category, amount, date, icon, colorKey });
+      },
+      prepare({ ids, merchant, category, amount, date, icon, colorKey }) {
+        return { payload: { ids, merchant, category, amount, date, icon, colorKey } };
+      },
+    },
   },
 });
 
-export const { transactionAdded, transactionUpdated, deleteTransaction, deleteTransactions } =
-  transactionsSlice.actions;
+export const {
+  transactionAdded,
+  transactionUpdated,
+  deleteTransaction,
+  deleteTransactions,
+  transactionsMerged,
+} = transactionsSlice.actions;
 
 // Callers (AI quick-add, document import, manual entry) only supply the
 // fields a human or the model would know — icon/colorKey always come from
@@ -76,6 +95,25 @@ export function addTransaction({ merchant, category, amount, date }) {
     const categories = getState().profile.categories;
     dispatch(
       transactionAdded({
+        merchant,
+        category,
+        amount,
+        date,
+        ...resolveCategoryDisplay(categories, category),
+      }),
+    );
+  };
+}
+
+// category should already be resolved (same category across all merged
+// rows, or 'Other' when they differed) — see AllTransactionsScreen's merge
+// eligibility check.
+export function mergeTransactions({ ids, merchant, category, amount, date }) {
+  return (dispatch, getState) => {
+    const categories = getState().profile.categories;
+    dispatch(
+      transactionsMerged({
+        ids,
         merchant,
         category,
         amount,

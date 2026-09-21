@@ -8,7 +8,7 @@ import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
 import { getActivityDisplay } from '../utils/transactionDisplay';
-import { deleteTransactions } from '../store/slices/transactionsSlice';
+import { deleteTransactions, mergeTransactions } from '../store/slices/transactionsSlice';
 
 function AddTransactionButton({ onPress, styles }) {
   return (
@@ -46,6 +46,50 @@ function AllTransactionsScreen() {
 
   const toggleSelectAll = () => {
     setSelectedIds(allSelected ? [] : activities.map((activity) => activity.id));
+  };
+
+  const selectedTransactions = transactions.filter((transaction) =>
+    selectedIds.includes(transaction.id),
+  );
+  // Only offer merging when every selected row is actually the same
+  // receipt split apart — same day, same merchant. Amounts sum; category
+  // carries over only if every row already agrees, otherwise the merged
+  // entry falls back to "Other" rather than guessing.
+  const canMerge =
+    selectedTransactions.length >= 2 &&
+    selectedTransactions.every(
+      (transaction) =>
+        transaction.date === selectedTransactions[0].date &&
+        transaction.merchant === selectedTransactions[0].merchant,
+    );
+  const mergePreview = canMerge
+    ? {
+        merchant: selectedTransactions[0].merchant,
+        date: selectedTransactions[0].date,
+        amount: selectedTransactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+        category: selectedTransactions.every(
+          (transaction) => transaction.category === selectedTransactions[0].category,
+        )
+          ? selectedTransactions[0].category
+          : 'Other',
+      }
+    : null;
+
+  const handleMergeSelected = () => {
+    Alert.alert(
+      `Merge ${selectedIds.length} transactions?`,
+      `${mergePreview.merchant} on ${mergePreview.date} will become one ₹${mergePreview.amount} entry.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Merge',
+          onPress: () => {
+            dispatch(mergeTransactions({ ids: selectedIds, ...mergePreview }));
+            exitSelectionMode();
+          },
+        },
+      ],
+    );
   };
 
   const handleDeleteSelected = () => {
@@ -120,6 +164,11 @@ function AllTransactionsScreen() {
       />
       {selectionMode ? (
         <View style={styles.deleteBar}>
+          {canMerge ? (
+            <BaseButton onPress={handleMergeSelected} style={styles.mergeButton}>
+              <Text style={styles.mergeButtonLabel}>Merge {selectedIds.length} into one</Text>
+            </BaseButton>
+          ) : null}
           <BaseButton
             onPress={handleDeleteSelected}
             disabled={selectedIds.length === 0}
@@ -188,6 +237,18 @@ const getStyles = (colors) =>
       paddingBottom: 24,
       borderTopWidth: 1,
       borderTopColor: colors.cardBorder,
+      gap: 10,
+    },
+    mergeButton: {
+      backgroundColor: colors.gradientStart,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    mergeButtonLabel: {
+      color: colors.white,
+      fontSize: 15,
+      fontWeight: '700',
     },
     deleteButton: {
       backgroundColor: colors.dining,
