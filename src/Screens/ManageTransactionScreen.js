@@ -31,6 +31,27 @@ const DATE_OPTIONS = [
   { key: 'custom', label: 'Custom' },
 ];
 
+// Lets the Amount field double as a tiny calculator (e.g. "120+300") instead
+// of only ever accepting a plain number — handy when a bill has more than
+// one line item worth adding up. Whitelisting the characters before handing
+// the expression to Function() keeps this from being a general eval().
+function evaluateAmountExpression(raw) {
+  const expr = raw.replace(/,/g, '').trim();
+  if (!expr) {
+    return null;
+  }
+  if (!/^[0-9+\-*/.\s]+$/.test(expr)) {
+    return null;
+  }
+  try {
+    // eslint-disable-next-line no-new-func
+    const result = Function(`"use strict"; return (${expr});`)();
+    return Number.isFinite(result) ? result : null;
+  } catch (error) {
+    return null;
+  }
+}
+
 function ManageTransactionScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -47,23 +68,36 @@ function ManageTransactionScreen() {
     : null;
   const isEditing = !!editingTransaction;
 
+  // A scanned bill or a parsed statement row arrives here as a draft — not
+  // yet in the store — so its fields prefill the same form an existing
+  // transaction would, but Save adds it fresh instead of updating anything.
+  const draftTransaction = !isEditing ? route.params?.draftTransaction : null;
+  const onSaved = route.params?.onSaved;
+  const isReviewingDraft = !!draftTransaction;
+  const initialRecord = editingTransaction || draftTransaction || null;
+
   const initialDateOption = (() => {
-    if (!editingTransaction) return 'today';
-    if (editingTransaction.date === getTodayISO()) return 'today';
-    if (editingTransaction.date === getYesterdayISO()) return 'yesterday';
+    if (!initialRecord) return 'today';
+    if (initialRecord.date === getTodayISO()) return 'today';
+    if (initialRecord.date === getYesterdayISO()) return 'yesterday';
     return 'custom';
   })();
 
-  const [selectedCategory, setSelectedCategory] = useState(editingTransaction?.category ?? null);
-  const [merchant, setMerchant] = useState(editingTransaction?.merchant ?? '');
-  const [amount, setAmount] = useState(
-    editingTransaction ? String(editingTransaction.amount) : '',
-  );
+  const [selectedCategory, setSelectedCategory] = useState(initialRecord?.category ?? null);
+  const [merchant, setMerchant] = useState(initialRecord?.merchant ?? '');
+  const [amount, setAmount] = useState(initialRecord ? String(initialRecord.amount) : '');
   const [dateOption, setDateOption] = useState(initialDateOption);
   const [customDate, setCustomDate] = useState(
-    initialDateOption === 'custom' ? editingTransaction.date : '',
+    initialDateOption === 'custom' ? initialRecord.date : '',
   );
   const [error, setError] = useState('');
+
+  const handleAmountBlur = () => {
+    const evaluated = evaluateAmountExpression(amount);
+    if (evaluated !== null && String(evaluated) !== amount.trim()) {
+      setAmount(String(evaluated));
+    }
+  };
 
   const handleSubmit = () => {
     setError('');
@@ -77,8 +111,8 @@ function ManageTransactionScreen() {
       setError('Enter who you paid.');
       return;
     }
-    const parsedAmount = Number(amount.replace(/,/g, ''));
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    const parsedAmount = evaluateAmountExpression(amount);
+    if (parsedAmount === null || parsedAmount <= 0) {
       setError('Enter an amount greater than zero.');
       return;
     }
@@ -103,6 +137,9 @@ function ManageTransactionScreen() {
     } else {
       dispatch(addTransaction(payload));
     }
+    if (onSaved) {
+      onSaved();
+    }
     navigation.goBack();
   };
 
@@ -122,7 +159,10 @@ function ManageTransactionScreen() {
 
   return (
     <View style={styles.screen}>
-      <CustomHeader title={isEditing ? 'Edit Transaction' : 'Add Transaction'} leftAction="close" />
+      <CustomHeader
+        title={isEditing ? 'Edit Transaction' : isReviewingDraft ? 'Review Scanned Bill' : 'Add Transaction'}
+        leftAction="close"
+      />
       <KeyboardAwareScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -167,12 +207,14 @@ function ManageTransactionScreen() {
             <TextInput
               value={amount}
               onChangeText={setAmount}
+              onBlur={handleAmountBlur}
               placeholder="0"
               placeholderTextColor={colors.textMuted}
-              keyboardType="numeric"
+              keyboardType="default"
               style={styles.amountInput}
             />
           </View>
+          <Text style={styles.helperText}>You can add items up, e.g. 120+300</Text>
 
           <View style={styles.spacer} />
 
@@ -286,6 +328,11 @@ const getStyles = (colors) =>
       fontSize: 20,
       fontWeight: '700',
       paddingVertical: 14,
+    },
+    helperText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      marginTop: 6,
     },
     errorText: {
       color: colors.dining,

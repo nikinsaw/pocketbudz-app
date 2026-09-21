@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import {
   pick,
   keepLocalCopy,
@@ -33,6 +34,7 @@ function AIAssistantScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const dispatch = useDispatch();
+  const navigation = useNavigation();
 
   const transactions = useSelector((state) => state.transactions.items);
   const envelopes = useSelector((state) => state.budget.envelopes);
@@ -92,20 +94,38 @@ function AIAssistantScreen() {
     }
   };
 
-  const runImport = async ({ uri, name, type, size }) => {
+  const runImport = async ({ uri, name, type, size, source }) => {
     setImportStatus('loading');
     setImportError('');
     setImportCandidates([]);
 
     const result = await parseTransactionsFromFile({ uri, name, type, size, categories });
 
-    if (result.success) {
-      setImportCandidates(result.transactions.map((t) => ({ ...t, selected: true })));
-      setImportStatus('review');
-    } else {
+    if (!result.success) {
       setImportError(result.error);
       setImportStatus('error');
+      return;
     }
+
+    // A scanned bill is almost always a single receipt — send it to the
+    // same edit screen used for manual entries, prefilled, so the user can
+    // fix anything Gemini misread before it touches their budget. A
+    // statement/CSV import (or a photo with multiple line items) still goes
+    // through the bulk checkbox review below.
+    if (source === 'camera' && result.transactions.length === 1) {
+      setImportStatus('idle');
+      navigation.navigate('ManageTransaction', {
+        draftTransaction: result.transactions[0],
+        onSaved: () => {
+          setImportStatus('success');
+          setImportedCount(1);
+        },
+      });
+      return;
+    }
+
+    setImportCandidates(result.transactions.map((t) => ({ ...t, selected: true })));
+    setImportStatus('review');
   };
 
   const handlePickFile = async () => {
@@ -136,7 +156,13 @@ function AIAssistantScreen() {
       return;
     }
 
-    await runImport({ uri: copy.localUri, name: picked.name, type: picked.type, size: picked.size });
+    await runImport({
+      uri: copy.localUri,
+      name: picked.name,
+      type: picked.type,
+      size: picked.size,
+      source: 'file',
+    });
   };
 
   const handleScanBill = async () => {
@@ -177,6 +203,7 @@ function AIAssistantScreen() {
       name: asset.fileName || 'receipt.jpg',
       type: asset.type || 'image/jpeg',
       size: asset.fileSize,
+      source: 'camera',
     });
   };
 
