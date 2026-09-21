@@ -190,6 +190,19 @@ function AIAssistantScreen() {
     );
   };
 
+  const handleEditCandidate = (index) => {
+    const { selected, ...draftTransaction } = importCandidates[index];
+    navigation.navigate('ManageTransaction', {
+      draftTransaction,
+      localOnly: true,
+      onSaved: (updated) => {
+        setImportCandidates((prev) =>
+          prev.map((candidate, i) => (i === index ? { ...updated, selected: true } : candidate)),
+        );
+      },
+    });
+  };
+
   const handleConfirmImport = () => {
     const selected = importCandidates.filter((candidate) => candidate.selected);
     selected.forEach(({ selected: _selected, ...transaction }) => {
@@ -305,6 +318,15 @@ function AIAssistantScreen() {
                       </Text>
                     </View>
                     <Text style={styles.reviewAmount}>₹{candidate.amount}</Text>
+                    <Pressable
+                      onPress={() => handleEditCandidate(index)}
+                      hitSlop={10}
+                      style={styles.reviewEditButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit ${candidate.merchant}`}
+                    >
+                      <Text style={styles.reviewEditGlyph}>✏️</Text>
+                    </Pressable>
                   </Pressable>
                 ))}
 
@@ -447,6 +469,13 @@ const getStyles = (colors) =>
       color: colors.text,
       fontSize: 14,
       fontWeight: '700',
+    },
+    reviewEditButton: {
+      marginLeft: 12,
+      padding: 4,
+    },
+    reviewEditGlyph: {
+      fontSize: 15,
     },
     reviewActions: {
       flexDirection: 'row',

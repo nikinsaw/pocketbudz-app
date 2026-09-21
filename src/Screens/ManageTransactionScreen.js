@@ -73,6 +73,11 @@ function ManageTransactionScreen() {
   // transaction would, but Save adds it fresh instead of updating anything.
   const draftTransaction = !isEditing ? route.params?.draftTransaction : null;
   const onSaved = route.params?.onSaved;
+  // A row being edited inside a bulk import's review list isn't in the
+  // store yet either, and shouldn't be added on its own — Save just hands
+  // the corrected fields back to onSaved so the caller can update its local
+  // list; the batch "Add N selected" action does the actual dispatching.
+  const localOnly = !!route.params?.localOnly;
   const isReviewingDraft = !!draftTransaction;
   const initialRecord = editingTransaction || draftTransaction || null;
 
@@ -134,11 +139,11 @@ function ManageTransactionScreen() {
 
     if (isEditing) {
       dispatch(updateTransaction({ id: editingTransaction.id, ...payload }));
-    } else {
+    } else if (!localOnly) {
       dispatch(addTransaction(payload));
     }
     if (onSaved) {
-      onSaved();
+      onSaved(payload);
     }
     navigation.goBack();
   };
@@ -244,7 +249,7 @@ function ManageTransactionScreen() {
 
           <BaseButton onPress={handleSubmit} style={styles.saveButton}>
             <Text style={styles.saveButtonLabel}>
-              {isEditing ? 'Save Changes' : 'Add Transaction'}
+              {isEditing ? 'Save Changes' : localOnly ? 'Save' : 'Add Transaction'}
             </Text>
           </BaseButton>
 
