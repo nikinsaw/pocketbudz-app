@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import {
   pick,
   keepLocalCopy,
@@ -9,6 +10,7 @@ import {
   isErrorWithCode,
   errorCodes,
 } from '@react-native-documents/picker';
+import { launchCamera } from 'react-native-image-picker';
 import CustomHeader from '../Components/Common/CustomHeader';
 import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
@@ -32,6 +34,7 @@ function AIAssistantScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const dispatch = useDispatch();
+  const navigation = useNavigation();
 
   const transactions = useSelector((state) => state.transactions.items);
   const envelopes = useSelector((state) => state.budget.envelopes);
@@ -48,6 +51,7 @@ function AIAssistantScreen() {
   const [addedTransaction, setAddedTransaction] = useState(null);
 
   const [importStatus, setImportStatus] = useState('idle'); // idle | loading | review | error | success
+  const [importSource, setImportSource] = useState(null); // 'camera' | 'file' — which button triggered the current import
   const [importError, setImportError] = useState('');
   const [importCandidates, setImportCandidates] = useState([]);
   const [importedCount, setImportedCount] = useState(0);
@@ -90,7 +94,42 @@ function AIAssistantScreen() {
     }
   };
 
+  const runImport = async ({ uri, name, type, size, source }) => {
+    setImportStatus('loading');
+    setImportError('');
+    setImportCandidates([]);
+
+    const result = await parseTransactionsFromFile({ uri, name, type, size, categories });
+
+    if (!result.success) {
+      setImportError(result.error);
+      setImportStatus('error');
+      return;
+    }
+
+    // A scanned bill is almost always a single receipt — send it to the
+    // same edit screen used for manual entries, prefilled, so the user can
+    // fix anything Gemini misread before it touches their budget. A
+    // statement/CSV import (or a photo with multiple line items) still goes
+    // through the bulk checkbox review below.
+    if (source === 'camera' && result.transactions.length === 1) {
+      setImportStatus('idle');
+      navigation.navigate('ManageTransaction', {
+        draftTransaction: result.transactions[0],
+        onSaved: () => {
+          setImportStatus('success');
+          setImportedCount(1);
+        },
+      });
+      return;
+    }
+
+    setImportCandidates(result.transactions.map((t) => ({ ...t, selected: true })));
+    setImportStatus('review');
+  };
+
   const handlePickFile = async () => {
+    setImportSource('file');
     let picked;
     try {
       const [result] = await pick({ type: IMPORT_FILE_TYPES });
@@ -103,10 +142,6 @@ function AIAssistantScreen() {
       setImportError("Couldn't open that file — try again.");
       return;
     }
-
-    setImportStatus('loading');
-    setImportError('');
-    setImportCandidates([]);
 
     // pick() may hand back a content:// uri (Android) that isn't safe to
     // assume a plain filesystem reader can open — keepLocalCopy guarantees
@@ -121,21 +156,55 @@ function AIAssistantScreen() {
       return;
     }
 
-    const result = await parseTransactionsFromFile({
+    await runImport({
       uri: copy.localUri,
       name: picked.name,
       type: picked.type,
       size: picked.size,
-      categories,
+      source: 'file',
     });
+  };
 
-    if (result.success) {
-      setImportCandidates(result.transactions.map((t) => ({ ...t, selected: true })));
-      setImportStatus('review');
-    } else {
-      setImportError(result.error);
+  const handleScanBill = async () => {
+    setImportSource('camera');
+    let response;
+    try {
+      response = await launchCamera({
+        mediaType: 'photo',
+        saveToPhotos: false,
+        quality: 0.8,
+      });
+    } catch (error) {
       setImportStatus('error');
+      setImportError("Couldn't open the camera — try again.");
+      return;
     }
+
+    if (response.didCancel || response.errorCode) {
+      if (response.errorCode === 'camera_unavailable') {
+        setImportStatus('error');
+        setImportError('No camera available on this device.');
+      } else if (response.errorCode === 'permission') {
+        setImportStatus('error');
+        setImportError('Camera permission is required to scan a bill — enable it in Settings.');
+      }
+      return;
+    }
+
+    const asset = response.assets?.[0];
+    if (!asset?.uri) {
+      setImportStatus('error');
+      setImportError("Couldn't capture that photo — try again.");
+      return;
+    }
+
+    await runImport({
+      uri: asset.uri,
+      name: asset.fileName || 'receipt.jpg',
+      type: asset.type || 'image/jpeg',
+      size: asset.fileSize,
+      source: 'camera',
+    });
   };
 
   const toggleCandidate = (index) => {
@@ -238,15 +307,26 @@ function AIAssistantScreen() {
             </Text>
 
             {importStatus !== 'review' ? (
-              <BaseButton
-                onPress={handlePickFile}
-                disabled={importStatus === 'loading'}
-                style={styles.button}
-              >
-                <Text style={styles.buttonLabel}>
-                  {importStatus === 'loading' ? 'Reading…' : 'Choose file'}
-                </Text>
-              </BaseButton>
+              <View style={styles.importButtonRow}>
+                <BaseButton
+                  onPress={handleScanBill}
+                  disabled={importStatus === 'loading'}
+                  style={styles.button}
+                >
+                  <Text style={styles.buttonLabel}>
+                    {importStatus === 'loading' && importSource === 'camera' ? 'Reading…' : 'Scan a bill'}
+                  </Text>
+                </BaseButton>
+                <BaseButton
+                  onPress={handlePickFile}
+                  disabled={importStatus === 'loading'}
+                  style={styles.buttonSecondary}
+                >
+                  <Text style={styles.buttonSecondaryLabel}>
+                    {importStatus === 'loading' && importSource === 'file' ? 'Reading…' : 'Choose file'}
+                  </Text>
+                </BaseButton>
+              </View>
             ) : null}
 
             {importStatus === 'error' && importError ? (
@@ -333,6 +413,10 @@ const getStyles = (colors) =>
       fontSize: 13,
       lineHeight: 18,
       marginBottom: 12,
+    },
+    importButtonRow: {
+      flexDirection: 'row',
+      gap: 10,
     },
     button: {
       alignSelf: 'flex-start',
