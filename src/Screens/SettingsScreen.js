@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, Alert } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import {
 import { resetOnboarding } from '../store/slices/profileSlice';
 import { isBiometricAvailable, enableAppLock, disableAppLock } from '../storage/appLock';
 import { CURRENCY_FORMATS, CYCLE_START_OPTIONS } from '../data/onboardingQuestions';
+import { exportTransactionsToCsv } from '../services/exportTransactions';
 
 function SettingsScreen() {
   const { colors, isDark, setIsDark } = useTheme();
@@ -25,6 +26,9 @@ function SettingsScreen() {
     (state) => state.settings,
   );
   const profile = useSelector((state) => state.profile);
+  const transactions = useSelector((state) => state.transactions.items);
+
+  const [exportStatus, setExportStatus] = useState('idle'); // idle | exporting
 
   const currencyLabel =
     CURRENCY_FORMATS.find((format) => format.key === profile.currencyFormat)?.label ??
@@ -36,6 +40,19 @@ function SettingsScreen() {
   const handleEditProfile = () => {
     dispatch(resetOnboarding());
     navigation.navigate('Onboarding');
+  };
+
+  const handleExportTransactions = async () => {
+    if (exportStatus === 'exporting') {
+      return;
+    }
+    setExportStatus('exporting');
+    const result = await exportTransactionsToCsv(transactions);
+    setExportStatus('idle');
+
+    if (!result.success && !result.cancelled) {
+      Alert.alert("Couldn't export", result.error);
+    }
   };
 
   const handleToggleAppLock = async (next) => {
@@ -108,6 +125,16 @@ function SettingsScreen() {
     },
   ];
 
+  const dataRows = [
+    {
+      icon: '📤',
+      label: 'Export Transactions',
+      type: 'nav',
+      value: exportStatus === 'exporting' ? 'Exporting…' : `${transactions.length}`,
+      onPress: handleExportTransactions,
+    },
+  ];
+
   const aboutRows = [
     { icon: '❓', label: 'Help Center', type: 'nav' },
     { icon: '💬', label: 'Contact & Feedback', type: 'nav' },
@@ -138,6 +165,7 @@ function SettingsScreen() {
         <SettingsSection title="Preferences" rows={preferenceRows} />
         <SettingsSection title="Security & Privacy" rows={securityRows} />
         <SettingsSection title="Notifications" rows={notificationRows} />
+        <SettingsSection title="Data" rows={dataRows} />
         <SettingsSection title="About" rows={aboutRows} />
       </ScrollView>
     </View>
