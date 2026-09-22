@@ -32,6 +32,11 @@ jest.mock('react-native-keychain', () => ({
   resetGenericPassword: jest.fn(() => Promise.resolve(true)),
 }));
 
+jest.mock('react-native-bootsplash', () => ({
+  hide: jest.fn(() => Promise.resolve()),
+  isVisible: jest.fn(() => Promise.resolve(false)),
+}));
+
 jest.mock('react-native-mmkv', () => ({
   createMMKV: jest.fn(() => ({
     set: jest.fn(),
