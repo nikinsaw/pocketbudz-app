@@ -56,11 +56,17 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
 
+      # Stripped of all whitespace first: a base64 secret pasted via a
+      # browser (or copied from a Windows terminal/clipboard) can pick up
+      # stray \r or embedded newlines that don't stop `base64 --decode`
+      # from running, but do corrupt its output — the keystore then fails
+      # to parse later with an opaque "Tag number over 30" error instead of
+      # a clear decode failure here.
       - name: Decode signing keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         working-directory: android
-        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > release.keystore
+        run: echo "$ANDROID_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 --decode > release.keystore
 
       - name: Write keystore.properties
         env:
