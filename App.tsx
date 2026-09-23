@@ -23,6 +23,7 @@ import { Provider as StoreProvider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './src/store/store';
 import AppLockGate from './src/Components/AppLock/AppLockGate';
+import BootSplash from 'react-native-bootsplash';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -152,7 +153,15 @@ function App() {
   return (
     <SafeAreaProvider>
       <StoreProvider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
+        <PersistGate
+          loading={null}
+          persistor={persistor}
+          // Redux-persist rehydration decides whether the app lock screen or
+          // the main tabs render first — hide the native splash right as
+          // whichever one is about to appear, instead of on a fixed timer
+          // that could race ahead of or lag behind it.
+          onBeforeLift={() => BootSplash.hide({ fade: true })}
+        >
           <ThemeProvider>
             <AppLockGate>
               <NavigationContainer>
