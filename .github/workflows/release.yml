@@ -68,6 +68,19 @@ jobs:
         working-directory: android
         run: echo "$ANDROID_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 --decode > release.keystore
 
+      # Fails in seconds with keytool's own, specific error (bad password,
+      # unreadable format, wrong alias, ...) instead of finding out the
+      # keystore was bad from an opaque bundletool error after the full
+      # ~12 minute release build has already run.
+      - name: Validate signing keystore
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        working-directory: android
+        run: |
+          echo "Decoded keystore size: $(wc -c < release.keystore) bytes"
+          keytool -list -keystore release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS"
+
       - name: Write keystore.properties
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
