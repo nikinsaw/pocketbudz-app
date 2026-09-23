@@ -109,7 +109,12 @@ android {
         }
         if (keystorePropertiesFile.exists()) {
             release {
-                storeFile file(keystoreProperties['storeFile'])
+                // rootProject (android/), not file() (which would resolve
+                // relative to this app/ module) — keystore.properties itself
+                // lives at the android/ root, so a relative storeFile in it
+                // should resolve from there too, not from wherever this
+                // build.gradle happens to be.
+                storeFile rootProject.file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
