@@ -58,6 +58,13 @@ jobs:
       - name: Write placeholder .env
         run: echo "GEMINI_API_KEY=ci-placeholder" > .env
 
+      # gradlew's executable bit lives in git's index, independent of the
+      # committing machine's filesystem — a commit made from Windows (where
+      # there's no real exec bit to preserve) can silently strip it again,
+      # which fails here with exit 126, not a clear "permission" message.
+      - name: Ensure gradlew is executable
+        run: chmod +x android/gradlew
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
