@@ -1,0 +1,122 @@
+name: Release (Play Store)
+
+# Manual by default (workflow_dispatch) — a Play Store upload isn't
+# something that should happen on every push. Pushing a "v1.2.3" tag is the
+# other supported trigger, for anyone who prefers tag-per-release.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Play Console track to publish to
+        type: choice
+        options: [internal, alpha, beta, production]
+        default: internal
+      versionName:
+        description: "Version name, e.g. 1.2.0 (defaults to package.json's version)"
+        required: false
+
+jobs:
+  release:
+    name: Build & publish AAB
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Ensure gradlew is executable
+        run: chmod +x android/gradlew
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      # Unlike the debug build in ci.yml, a release build actually bundles
+      # the JS — this key ships inside the AAB users install.
+      - name: Write .env
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
+
+      - name: Decode signing keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        working-directory: android
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > release.keystore
+
+      - name: Write keystore.properties
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: android
+        run: |
+          cat > keystore.properties <<EOF
+          storeFile=release.keystore
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+
+      # versionCode must strictly increase on every Play Console upload —
+      # github.run_number does that automatically across every run of this
+      # workflow. versionName is cosmetic: from the pushed tag, the manual
+      # input, or package.json's version, in that order.
+      - name: Resolve version name
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.versionName }}" ]; then
+            echo "name=${{ inputs.versionName }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release AAB
+        working-directory: android
+        run: |
+          ./gradlew bundleRelease --no-daemon \
+            -PversionCode=${{ github.run_number }} \
+            -PversionName=${{ steps.version.outputs.name }}
+
+      # Secrets only ever need to exist on disk for the build step above —
+      # wipe them immediately after, success or failure.
+      - name: Remove signing secrets from disk
+        if: always()
+        working-directory: android
+        run: rm -f release.keystore keystore.properties
+
+      - name: Upload AAB as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ steps.version.outputs.name }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - name: Publish to Play Console
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.pocketbudz
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ github.event_name == 'push' && 'internal' || inputs.track }}
+          status: completed

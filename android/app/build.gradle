@@ -92,8 +92,13 @@ android {
         applicationId "com.pocketbudz"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Play Console rejects any upload whose versionCode isn't strictly
+        // higher than the last one it has on file, so a hardcoded value
+        // would only ever work for a single release. The release workflow
+        // passes -PversionCode=<n> (the GitHub Actions run number, which
+        // only ever increases); local/debug builds fall back to 1.
+        versionCode project.hasProperty('versionCode') ? project.property('versionCode').toInteger() : 1
+        versionName project.hasProperty('versionName') ? project.property('versionName') : "1.0"
     }
     signingConfigs {
         debug {
