@@ -100,6 +100,33 @@ export function createHouseholdService(prisma: PrismaClient) {
         return { householdId: invite.householdId, role: membership.role };
       });
     },
+
+    // Leaving detaches the account but keeps the membership row, so past
+    // spending stays in household totals, anonymised. A sole member leaving
+    // deletes the household; an owner with others must hand over ownership first.
+    async leave(userId: string, householdId: string) {
+      const membership = await requireMembership(prisma, userId, householdId);
+      const others = await prisma.membership.count({
+        where: { householdId, leftAt: null, id: { not: membership.id } },
+      });
+      if (others === 0) {
+        await prisma.household.delete({ where: { id: householdId } });
+        return { householdDeleted: true };
+      }
+      if (membership.role === 'OWNER') {
+        const otherOwners = await prisma.membership.count({
+          where: { householdId, leftAt: null, role: 'OWNER', id: { not: membership.id } },
+        });
+        if (otherOwners === 0) {
+          throw new HttpError(409, 'Transfer ownership before leaving');
+        }
+      }
+      await prisma.membership.update({
+        where: { id: membership.id },
+        data: { leftAt: new Date(), userId: null },
+      });
+      return { householdDeleted: false };
+    },
   };
 }
 
