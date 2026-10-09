@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  EARNER
+  SPENDER
+}
+
+// How much of a spender's personal spending a viewer may see.
+// Stamped onto each transaction when it is created, so changing a sharing
+// setting only affects future transactions.
+enum VisibilityLevel {
+  NONE
+  TOTAL
+  FULL
+}
+
+enum EnvelopeScope {
+  SHARED
+  PERSONAL
+}
+
+model User {
+  id        String    @id @default(cuid())
+  googleSub String    @unique
+  email     String    @unique
+  name      String
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  memberships   Membership[]
+  consents      ConsentRecord[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Which version of the household-mode agreement a user accepted, and when.
+model ConsentRecord {
+  id         String   @id @default(cuid())
+  userId     String
+  version    String
+  acceptedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Household {
+  id                  String   @id @default(cuid())
+  name                String
+  currencyFormat      String   @default("indian")
+  budgetCycleStartDay Int      @default(1)
+  createdAt           DateTime @default(now())
+
+  members      Membership[]
+  invites      Invite[]
+  envelopes    Envelope[]
+  transactions Transaction[]
+  incomes      IncomeSource[]
+  allowances   Allowance[]
+}
+
+// When someone leaves, leftAt is set and userId is detached. Their history
+// stays in household totals but is anonymised.
+model Membership {
+  id          String    @id @default(cuid())
+  householdId String
+  userId      String?
+  role        Role
+  joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  transactions   Transaction[]
+  envelopes      Envelope[]
+  incomes        IncomeSource[]
+  grantsGiven    VisibilityGrant[] @relation("GrantOwner")
+  grantsReceived VisibilityGrant[] @relation("GrantViewer")
+  allowancesIn   Allowance[]       @relation("AllowanceTo")
+  allowancesOut  Allowance[]       @relation("AllowanceFrom")
+
+  @@unique([householdId, userId])
+  @@index([householdId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  householdId String
+  code        String    @unique
+  role        Role
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+}
+
+model Envelope {
+  id          String        @id @default(cuid())
+  householdId String
+  scope       EnvelopeScope
+  ownerId     String? // membership id; required when scope = PERSONAL
+  categoryKey String
+  icon        String
+  title       String
+  colorKey    String
+  type        String
+  budgetLimit Int // paise
+  createdAt   DateTime      @default(now())
+
+  household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  owner        Membership?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  transactions Transaction[]
+
+  @@index([householdId])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  householdId String
+  memberId    String? // spender; null once anonymised
+  envelopeId  String?
+  merchant    String
+  category    String
+  amount      Int // paise
+  date        DateTime @db.Date
+  createdAt   DateTime @default(now())
+
+  household  Household               @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  member     Membership?             @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  envelope   Envelope?               @relation(fields: [envelopeId], references: [id], onDelete: SetNull)
+  visibility TransactionVisibility[]
+
+  @@index([householdId, date])
+  @@index([memberId])
+}
+
+// One row per (transaction, viewer), stamped when the transaction is created
+// from the spender's grants at that moment. Only used for PERSONAL-envelope
+// spending; shared-envelope spending is always visible to the household.
+model TransactionVisibility {
+  transactionId String
+  viewerId      String // membership id
+  level         VisibilityLevel
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@id([transactionId, viewerId])
+}
+
+// A spender's current sharing preference toward one viewer.
+// viewerId null = default for all household members without a specific grant.
+model VisibilityGrant {
+  id        String          @id @default(cuid())
+  ownerId   String // membership id of the spender
+  viewerId  String?
+  level     VisibilityLevel
+  updatedAt DateTime        @updatedAt
+
+  owner  Membership  @relation("GrantOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  viewer Membership? @relation("GrantViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, viewerId])
+}
+
+model IncomeSource {
+  id          String   @id @default(cuid())
+  householdId String
+  memberId    String
+  label       String
+  amount      Int // paise per cycle
+  createdAt   DateTime @default(now())
+
+  household Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  member    Membership @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+}
+
+// An earner setting money aside into a spender's personal budget.
+model Allowance {
+  id          String   @id @default(cuid())
+  householdId String
+  fromId      String
+  toId        String
+  amount      Int // paise per cycle
+  createdAt   DateTime @default(now())
+
+  household Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  from      Membership @relation("AllowanceFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to        Membership @relation("AllowanceTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+}
