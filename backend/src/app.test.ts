@@ -2,12 +2,13 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from './app.js';
 import { createAuthService } from './auth/service.js';
 import { prisma } from './db.js';
+import { createHouseholdService } from './households/service.js';
 
 const auth = createAuthService(prisma, async (idToken) => {
   if (idToken !== 'good') throw new Error('bad token');
   return { sub: 'google-sub-1', email: 'a@example.com', name: 'Asha' };
 });
-const app = buildApp({ auth });
+const app = buildApp({ auth, households: createHouseholdService(prisma) });
 
 beforeEach(async () => {
   await prisma.refreshToken.deleteMany();

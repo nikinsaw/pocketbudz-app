@@ -6,9 +6,12 @@ import { ZodError } from 'zod';
 import { HttpError } from './errors.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import type { AuthService } from './auth/service.js';
+import { registerHouseholdRoutes } from './households/routes.js';
+import type { HouseholdService } from './households/service.js';
 
 export interface AppDeps {
   auth: AuthService;
+  households: HouseholdService;
 }
 
 export function buildApp(deps: AppDeps) {
@@ -23,5 +26,6 @@ export function buildApp(deps: AppDeps) {
   app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
   app.get('/health', async () => ({ status: 'ok' }));
   app.register(async (instance) => registerAuthRoutes(instance, deps.auth));
+  app.register(async (instance) => registerHouseholdRoutes(instance, deps.households));
   return app;
 }
