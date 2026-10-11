@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import { ZodError } from 'zod';
 import { HttpError } from './errors.js';
 import { registerAuthRoutes } from './auth/routes.js';
+import { registerEnvelopeRoutes } from './envelopes/routes.js';
 import { registerHouseholdRoutes } from './households/routes.js';
 import type { Services } from './services.js';
 
@@ -21,5 +22,6 @@ export function buildApp(deps: Services) {
   app.get('/health', async () => ({ status: 'ok' }));
   app.register(async (instance) => registerAuthRoutes(instance, deps.auth));
   app.register(async (instance) => registerHouseholdRoutes(instance, deps.households));
+  app.register(async (instance) => registerEnvelopeRoutes(instance, deps.envelopes));
   return app;
 }
