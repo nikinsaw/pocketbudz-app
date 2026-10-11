@@ -1,9 +1,14 @@
 import type { PrismaClient, User } from '@prisma/client';
 import { config } from '../config.js';
+import { HttpError } from '../errors.js';
 import type { GoogleVerifier } from './googleVerifier.js';
 import { generateRefreshToken, hashRefreshToken, signAccessToken } from './tokens.js';
 
-export class AuthError extends Error {}
+export class AuthError extends HttpError {
+  constructor(message: string) {
+    super(401, message);
+  }
+}
 
 export interface Session {
   accessToken: string;
