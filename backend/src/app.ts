@@ -7,6 +7,7 @@ import { HttpError } from './errors.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import { registerEnvelopeRoutes } from './envelopes/routes.js';
 import { registerHouseholdRoutes } from './households/routes.js';
+import { registerIncomeRoutes } from './income/routes.js';
 import type { Services } from './services.js';
 import { registerTransactionRoutes } from './transactions/routes.js';
 
@@ -25,5 +26,6 @@ export function buildApp(deps: Services) {
   app.register(async (instance) => registerHouseholdRoutes(instance, deps.households));
   app.register(async (instance) => registerEnvelopeRoutes(instance, deps.envelopes));
   app.register(async (instance) => registerTransactionRoutes(instance, deps.transactions));
+  app.register(async (instance) => registerIncomeRoutes(instance, deps.income));
   return app;
 }
