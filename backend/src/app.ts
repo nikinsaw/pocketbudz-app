@@ -5,16 +5,10 @@ import rateLimit from '@fastify/rate-limit';
 import { ZodError } from 'zod';
 import { HttpError } from './errors.js';
 import { registerAuthRoutes } from './auth/routes.js';
-import type { AuthService } from './auth/service.js';
 import { registerHouseholdRoutes } from './households/routes.js';
-import type { HouseholdService } from './households/service.js';
+import type { Services } from './services.js';
 
-export interface AppDeps {
-  auth: AuthService;
-  households: HouseholdService;
-}
-
-export function buildApp(deps: AppDeps) {
+export function buildApp(deps: Services) {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof HttpError) return reply.code(err.status).send({ error: err.message });

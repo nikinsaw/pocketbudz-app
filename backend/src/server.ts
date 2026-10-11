@@ -1,14 +1,10 @@
 import { buildApp } from './app.js';
 import { createGoogleVerifier } from './auth/googleVerifier.js';
-import { createAuthService } from './auth/service.js';
 import { config } from './config.js';
-import { createHouseholdService } from './households/service.js';
 import { prisma } from './db.js';
+import { createServices } from './services.js';
 
-const app = buildApp({
-  auth: createAuthService(prisma, createGoogleVerifier()),
-  households: createHouseholdService(prisma),
-});
+const app = buildApp(createServices(prisma, createGoogleVerifier()));
 
 app.listen({ port: config.PORT, host: '0.0.0.0' }).catch((err) => {
   app.log.error(err);

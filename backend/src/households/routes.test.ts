@@ -1,17 +1,16 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../app.js';
-import { createAuthService } from '../auth/service.js';
 import { signAccessToken } from '../auth/tokens.js';
 import { prisma } from '../db.js';
-import { CONSENT_VERSION, createHouseholdService } from './service.js';
+import { createServices } from '../services.js';
+import { CONSENT_VERSION } from './service.js';
 import { makeUser, resetDb } from './testUtils.js';
 
-const app = buildApp({
-  auth: createAuthService(prisma, async () => {
+const app = buildApp(
+  createServices(prisma, async () => {
     throw new Error('unused');
   }),
-  households: createHouseholdService(prisma),
-});
+);
 
 beforeEach(() => resetDb(prisma));
 afterAll(async () => {
