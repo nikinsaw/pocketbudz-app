@@ -6,10 +6,17 @@ import type { VisibilityService } from './service.js';
 const householdParams = z.object({ id: z.string().min(1) });
 // `viewer` is a membership id, or the literal "everyone".
 const viewerParams = householdParams.extend({ viewer: z.string().min(1) });
-const setBody = z.object({ level: z.enum(['NONE', 'TOTAL', 'FULL']) });
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
+const rangeQuery = z.object({ from: isoDate.optional(), to: isoDate.optional() });
+const setBody =z.object({ level: z.enum(['NONE', 'TOTAL', 'FULL']) });
 
 export function registerVisibilityRoutes(app: FastifyInstance, visibility: VisibilityService) {
   const guarded = { preHandler: authenticate };
+
+  app.get('/households/:id/spending', guarded, async (req) => {
+    const { id } = householdParams.parse(req.params);
+    return visibility.spending(req.userId, id, rangeQuery.parse(req.query));
+  });
 
   app.get('/households/:id/visibility', guarded, async (req) => {
     const { id } = householdParams.parse(req.params);
