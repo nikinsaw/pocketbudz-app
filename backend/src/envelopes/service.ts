@@ -1,6 +1,7 @@
 import type { Envelope, EnvelopeScope, Membership, PrismaClient } from '@prisma/client';
 import { HttpError } from '../errors.js';
 import { requireMembership } from '../households/access.js';
+import { ownersVisibleAt } from '../visibility/resolve.js';
 
 export interface EnvelopeFields {
   categoryKey: string;
@@ -14,10 +15,12 @@ export interface EnvelopeFields {
 const SHARED_MANAGERS = ['OWNER', 'EARNER'] as const;
 
 export function createEnvelopeService(prisma: PrismaClient) {
-  // Shared envelopes are visible to everyone; a personal envelope only to its
-  // owner (sharing with other members is added by the visibility module).
-  function canSee(envelope: Envelope, membership: Membership) {
-    return envelope.scope === 'SHARED' || envelope.ownerId === membership.id;
+  // Shared envelopes are visible to everyone. A personal envelope is visible to its
+  // owner, and read-only to members the owner currently shares FULL detail with.
+  async function canSee(envelope: Envelope, membership: Membership) {
+    if (envelope.scope === 'SHARED' || envelope.ownerId === membership.id) return true;
+    const owners = await ownersVisibleAt(prisma, envelope.householdId, membership, 'FULL');
+    return envelope.ownerId !== null && owners.has(envelope.ownerId);
   }
 
   // Shared: owner/earner. Personal: only the member it belongs to.
@@ -33,7 +36,7 @@ export function createEnvelopeService(prisma: PrismaClient) {
 
   async function findVisible(householdId: string, envelopeId: string, membership: Membership) {
     const envelope = await prisma.envelope.findFirst({ where: { id: envelopeId, householdId } });
-    if (!envelope || !canSee(envelope, membership)) {
+    if (!envelope || !(await canSee(envelope, membership))) {
       throw new HttpError(404, 'Envelope not found');
     }
     return envelope;
@@ -60,8 +63,12 @@ export function createEnvelopeService(prisma: PrismaClient) {
 
     async list(userId: string, householdId: string) {
       const membership = await requireMembership(prisma, userId, householdId);
+      const sharedWithMe = await ownersVisibleAt(prisma, householdId, membership, 'FULL');
       return prisma.envelope.findMany({
-        where: { householdId, OR: [{ scope: 'SHARED' }, { ownerId: membership.id }] },
+        where: {
+          householdId,
+          OR: [{ scope: 'SHARED' }, { ownerId: { in: [membership.id, ...sharedWithMe] } }],
+        },
         orderBy: { createdAt: 'asc' },
       });
     },
