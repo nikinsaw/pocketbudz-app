@@ -1,6 +1,7 @@
 import type { Membership, PrismaClient } from '@prisma/client';
 import { HttpError } from '../errors.js';
 import { requireMembership } from '../households/access.js';
+import { clearVisibility, stampVisibility } from '../visibility/stamp.js';
 
 export interface TransactionFields {
   envelopeId: string | null;
@@ -26,16 +27,22 @@ export function createTransactionService(prisma: PrismaClient) {
     if (!envelope || (envelope.scope === 'PERSONAL' && envelope.ownerId !== membership.id)) {
       throw new HttpError(404, 'Envelope not found');
     }
+    return envelope;
   }
+
+  // Spending outside a shared envelope is private and gets visibility stamps.
+  const isPrivate = (envelope: { scope: string } | null) => !envelope || envelope.scope === 'PERSONAL';
 
   async function findOwn(householdId: string, transactionId: string, membership: Membership) {
     const transaction = await prisma.transaction.findFirst({
       where: { id: transactionId, householdId },
-      include: { envelope: true },
+      include: { envelope: true, visibility: { where: { viewerId: membership.id, level: 'FULL' } } },
     });
     const visible =
       transaction &&
-      (transaction.memberId === membership.id || transaction.envelope?.scope === 'SHARED');
+      (transaction.memberId === membership.id ||
+        transaction.envelope?.scope === 'SHARED' ||
+        transaction.visibility.length > 0);
     if (!transaction || !visible) {
       throw new HttpError(404, 'Transaction not found');
     }
@@ -70,26 +77,33 @@ export function createTransactionService(prisma: PrismaClient) {
   return {
     async create(userId: string, householdId: string, input: TransactionFields) {
       const membership = await requireMembership(prisma, userId, householdId);
-      if (input.envelopeId) {
-        await assertEnvelopeUsable(householdId, input.envelopeId, membership);
-      }
-      const created = await prisma.transaction.create({
-        data: {
-          householdId,
-          memberId: membership.id,
-          envelopeId: input.envelopeId,
-          merchant: input.merchant,
-          category: input.category,
-          amount: input.amount,
-          date: parseDate(input.date),
-        },
-        include,
+      const envelope = input.envelopeId
+        ? await assertEnvelopeUsable(householdId, input.envelopeId, membership)
+        : null;
+      const created = await prisma.$transaction(async (tx) => {
+        const row = await tx.transaction.create({
+          data: {
+            householdId,
+            memberId: membership.id,
+            envelopeId: input.envelopeId,
+            merchant: input.merchant,
+            category: input.category,
+            amount: input.amount,
+            date: parseDate(input.date),
+          },
+          include,
+        });
+        if (isPrivate(envelope)) {
+          await stampVisibility(tx, row.id, membership);
+        }
+        return row;
       });
       return present(created, membership);
     },
 
-    // What this member may see: shared-envelope spending plus their own.
-    // (Other members' personal spending joins this once the visibility module lands.)
+    // What this member may see: their own spending, everything in shared envelopes,
+    // and other members' private spending that was shared with them in full.
+    // (Totals-only spending is reported by the spending summary, never itemised.)
     async list(
       userId: string,
       householdId: string,
@@ -99,7 +113,11 @@ export function createTransactionService(prisma: PrismaClient) {
       const rows = await prisma.transaction.findMany({
         where: {
           householdId,
-          OR: [{ memberId: membership.id }, { envelope: { scope: 'SHARED' } }],
+          OR: [
+            { memberId: membership.id },
+            { envelope: { scope: 'SHARED' } },
+            { visibility: { some: { viewerId: membership.id, level: 'FULL' } } },
+          ],
           date: {
             ...(range.from ? { gte: parseDate(range.from) } : {}),
             ...(range.to ? { lte: parseDate(range.to) } : {}),
@@ -120,19 +138,28 @@ export function createTransactionService(prisma: PrismaClient) {
     ) {
       const membership = await requireMembership(prisma, userId, householdId);
       const existing = await findOwn(householdId, transactionId, membership);
-      if (changes.envelopeId) {
-        await assertEnvelopeUsable(householdId, changes.envelopeId, membership);
-      }
-      const updated = await prisma.transaction.update({
-        where: { id: existing.id },
-        data: {
-          ...(changes.envelopeId !== undefined ? { envelopeId: changes.envelopeId } : {}),
-          ...(changes.merchant !== undefined ? { merchant: changes.merchant } : {}),
-          ...(changes.category !== undefined ? { category: changes.category } : {}),
-          ...(changes.amount !== undefined ? { amount: changes.amount } : {}),
-          ...(changes.date !== undefined ? { date: parseDate(changes.date) } : {}),
-        },
-        include,
+      const movedEnvelope = changes.envelopeId !== undefined;
+      const envelope = changes.envelopeId
+        ? await assertEnvelopeUsable(householdId, changes.envelopeId, membership)
+        : null;
+      const updated = await prisma.$transaction(async (tx) => {
+        const row = await tx.transaction.update({
+          where: { id: existing.id },
+          data: {
+            ...(movedEnvelope ? { envelopeId: changes.envelopeId } : {}),
+            ...(changes.merchant !== undefined ? { merchant: changes.merchant } : {}),
+            ...(changes.category !== undefined ? { category: changes.category } : {}),
+            ...(changes.amount !== undefined ? { amount: changes.amount } : {}),
+            ...(changes.date !== undefined ? { date: parseDate(changes.date) } : {}),
+          },
+          include,
+        });
+        // Moving between private and shared (or between envelopes) re-stamps from today's settings.
+        if (movedEnvelope) {
+          if (isPrivate(envelope)) await stampVisibility(tx, row.id, membership);
+          else await clearVisibility(tx, row.id);
+        }
+        return row;
       });
       return present(updated, membership);
     },

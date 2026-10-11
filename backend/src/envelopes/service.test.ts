@@ -68,6 +68,26 @@ describe('list', () => {
   });
 });
 
+describe('personal envelopes shared in full', () => {
+  it('shows them read-only to the chosen viewer, not to anyone else', async () => {
+    const { owner, spender, spender2, household } = await setup();
+    const personal = await service.create(spender.id, household.id, { ...fields, title: 'Pocket money', scope: 'PERSONAL' });
+    const ownerMembership = household.members.find((m) => m.userId === owner.id)!;
+    await prisma.visibilityGrant.create({ data: { ownerId: personal.ownerId!, viewerId: ownerMembership.id, level: 'FULL' } });
+
+    expect((await service.list(owner.id, household.id)).map((e) => e.title)).toEqual(['Pocket money']);
+    expect(await service.list(spender2.id, household.id)).toEqual([]);
+    await expect(service.update(owner.id, household.id, personal.id, { title: 'x' })).rejects.toMatchObject({ status: 403 });
+    await expect(service.remove(owner.id, household.id, personal.id)).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('TOTAL-level sharing does not reveal the envelope', async () => {
+    const { owner, spender, household } = await setup();
+    await service.create(spender.id, household.id, { ...fields, scope: 'PERSONAL' });
+    expect(await service.list(owner.id, household.id)).toEqual([]);
+  });
+});
+
 describe('update / remove', () => {
   it('lets earners edit shared envelopes but not spenders', async () => {
     const { owner, earner, spender, household } = await setup();
