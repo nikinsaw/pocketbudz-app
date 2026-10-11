@@ -8,6 +8,7 @@ import { registerAuthRoutes } from './auth/routes.js';
 import { registerEnvelopeRoutes } from './envelopes/routes.js';
 import { registerHouseholdRoutes } from './households/routes.js';
 import type { Services } from './services.js';
+import { registerTransactionRoutes } from './transactions/routes.js';
 
 export function buildApp(deps: Services) {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
@@ -23,5 +24,6 @@ export function buildApp(deps: Services) {
   app.register(async (instance) => registerAuthRoutes(instance, deps.auth));
   app.register(async (instance) => registerHouseholdRoutes(instance, deps.households));
   app.register(async (instance) => registerEnvelopeRoutes(instance, deps.envelopes));
+  app.register(async (instance) => registerTransactionRoutes(instance, deps.transactions));
   return app;
 }
