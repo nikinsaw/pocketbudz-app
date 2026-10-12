@@ -6,13 +6,18 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '../src/theme/ThemeContext';
 import householdReducer from '../src/store/slices/householdSlice';
+import settingsReducer from '../src/store/slices/settingsSlice';
 
 // Renders a screen with the providers the app gives it (Redux, theme, navigation,
-// safe area). `household` seeds the household slice: { user, current }.
-export async function renderScreen(Screen, { household } = {}) {
+// safe area). `household` seeds the household slice: { user, current };
+// `settings` seeds settings overrides, e.g. { householdPromoDismissed: true }.
+export async function renderScreen(Screen, { household, settings } = {}) {
   const store = configureStore({
-    reducer: { household: householdReducer },
-    preloadedState: household ? { household } : undefined,
+    reducer: { household: householdReducer, settings: settingsReducer },
+    preloadedState: {
+      ...(household ? { household } : {}),
+      ...(settings ? { settings: { ...settingsReducer(undefined, { type: '@@init' }), ...settings } } : {}),
+    },
   });
   let renderer;
   await ReactTestRenderer.act(async () => {
