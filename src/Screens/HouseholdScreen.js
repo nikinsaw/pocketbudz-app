@@ -4,6 +4,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { useDispatch, useSelector } from 'react-redux';
 import CustomHeader from '../Components/Common/CustomHeader';
 import HouseholdIntro from '../Components/Household/HouseholdIntro';
+import HouseholdSetup from '../Components/Household/HouseholdSetup';
 import { useTheme } from '../theme/ThemeContext';
 import { householdActions } from '../services/householdApp';
 import { selectHouseholdMode } from '../store/slices/householdSlice';
@@ -18,7 +19,8 @@ function HouseholdScreen() {
   const styles = getStyles(colors);
   const dispatch = useDispatch();
   const mode = useSelector(selectHouseholdMode);
-  const hasAccount = useSelector((state) => state.household.user !== null);
+  const user = useSelector((state) => state.household.user);
+  const hasAccount = user !== null;
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(''); // sign-in problems, shown by the intro
@@ -33,11 +35,13 @@ function HouseholdScreen() {
     }
   }, [dispatch, hasAccount]);
 
-  const handleSignIn = async () => {
+  // Runs one user-triggered action with a busy flag and a friendly error. Cancelling
+  // the Google chooser is not an error.
+  const run = async (thunk) => {
     setBusy(true);
     setError('');
     try {
-      await dispatch(householdActions.signIn());
+      await dispatch(thunk);
     } catch (e) {
       if (!isCancelled(e)) {
         setError(describeHouseholdError(e));
@@ -46,6 +50,8 @@ function HouseholdScreen() {
       setBusy(false);
     }
   };
+
+  const handleSignIn = () => run(householdActions.signIn());
 
   return (
     <View style={styles.screen}>
@@ -64,6 +70,17 @@ function HouseholdScreen() {
         {mode !== 'solo' && syncError ? <Text style={styles.syncError}>{syncError}</Text> : null}
         {mode === 'solo' ? (
           <HouseholdIntro onSignIn={handleSignIn} busy={busy} error={error} />
+        ) : null}
+        {mode === 'signed-in' ? (
+          <HouseholdSetup
+            user={user}
+            fetchConsentVersion={householdActions.fetchConsentVersion}
+            onCreate={(input) => run(householdActions.createHousehold(input))}
+            onJoin={(input) => run(householdActions.joinHousehold(input))}
+            onSignOut={() => run(householdActions.signOut())}
+            busy={busy}
+            error={error}
+          />
         ) : null}
       </KeyboardAwareScrollView>
     </View>
