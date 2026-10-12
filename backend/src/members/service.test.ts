@@ -27,6 +27,38 @@ async function setup() {
   return { owner, earner, spender, household, mOwner: m(owner.id), mEarner: m(earner.id), mSpender: m(spender.id) };
 }
 
+describe('remove', () => {
+  it('lets the owner remove a member, who loses access and personal data', async () => {
+    const { owner, spender, household, mSpender } = await setup();
+    await allowances.set(owner.id, household.id, mSpender.id, 100000);
+    await service.remove(owner.id, household.id, mSpender.id);
+
+    const gone = await prisma.membership.findUniqueOrThrow({ where: { id: mSpender.id } });
+    expect(gone.userId).toBeNull();
+    expect(gone.leftAt).not.toBeNull();
+    expect(await prisma.allowance.count()).toBe(0);
+    await expect(transactions.list(spender.id, household.id)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('is owner-only and cannot target the owner, strangers or people who already left', async () => {
+    const { owner, earner, household, mOwner, mEarner, mSpender } = await setup();
+    await expect(service.remove(earner.id, household.id, mSpender.id)).rejects.toMatchObject({ status: 403 });
+    await expect(service.remove(owner.id, household.id, mOwner.id)).rejects.toMatchObject({ status: 400 });
+    await expect(service.remove(owner.id, household.id, 'nope')).rejects.toMatchObject({ status: 404 });
+    await service.remove(owner.id, household.id, mEarner.id);
+    await expect(service.remove(owner.id, household.id, mEarner.id)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('a removed member can join again with a new invite', async () => {
+    const { owner, spender, household, mSpender } = await setup();
+    await service.remove(owner.id, household.id, mSpender.id);
+    const { createHouseholdService, CONSENT_VERSION } = await import('../households/service.js');
+    const houses = createHouseholdService(prisma);
+    const { code } = await houses.createInvite(owner.id, household.id, 'SPENDER');
+    await expect(houses.join(spender.id, { code, consentVersion: CONSENT_VERSION })).resolves.toMatchObject({ role: 'SPENDER' });
+  });
+});
+
 describe('transferOwnership', () => {
   it('moves ownership, demotes the old owner to earner and keeps exactly one owner', async () => {
     const { owner, spender, household, mOwner, mSpender } = await setup();

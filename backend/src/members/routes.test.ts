@@ -39,6 +39,20 @@ describe('member routes', () => {
     expect((await app.inject({ method: 'PATCH', url, headers, payload: { role: 'OWNER' } })).statusCode).toBe(400);
   });
 
+  it('removes a member', async () => {
+    const owner = await makeUser(prisma, 'owner');
+    const spender = await makeUser(prisma, 'spender');
+    const household = await makeHousehold(prisma, [
+      { userId: owner.id, role: 'OWNER' },
+      { userId: spender.id, role: 'SPENDER' },
+    ]);
+    const target = household.members.find((m) => m.userId === spender.id)!;
+    const headers = { authorization: `Bearer ${await signAccessToken(owner.id)}` };
+    const url = `/households/${household.id}/members/${target.id}`;
+    expect((await app.inject({ method: 'DELETE', url, headers })).statusCode).toBe(204);
+    expect((await app.inject({ method: 'DELETE', url, headers })).statusCode).toBe(404);
+  });
+
   it('transfers ownership', async () => {
     const owner = await makeUser(prisma, 'owner');
     const earner = await makeUser(prisma, 'earner');

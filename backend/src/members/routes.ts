@@ -9,6 +9,12 @@ const roleBody = z.object({ role: z.enum(['EARNER', 'SPENDER']) });
 export function registerMemberRoutes(app: FastifyInstance, members: MemberService) {
   const guarded = { preHandler: authenticate };
 
+  app.delete('/households/:id/members/:membershipId', guarded, async (req, reply) => {
+    const { id, membershipId } = memberParams.parse(req.params);
+    await members.remove(req.userId, id, membershipId);
+    return reply.code(204).send();
+  });
+
   app.post('/households/:id/members/:membershipId/make-owner', guarded, async (req) => {
     const { id, membershipId } = memberParams.parse(req.params);
     return members.transferOwnership(req.userId, id, membershipId);

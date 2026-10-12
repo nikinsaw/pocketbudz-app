@@ -1,6 +1,7 @@
 import type { Membership, PrismaClient } from '@prisma/client';
 import { HttpError } from '../errors.js';
 import { requireMembership } from '../households/access.js';
+import { detachMember } from '../households/detach.js';
 
 // Owner-only household administration: roles, ownership and removing members.
 export function createMemberService(prisma: PrismaClient) {
@@ -47,6 +48,15 @@ export function createMemberService(prisma: PrismaClient) {
         }
       });
       return { membershipId, role };
+    },
+
+    // Same effect as the member leaving: history stays as anonymous totals.
+    async remove(userId: string, householdId: string, membershipId: string) {
+      const owner = await requireMembership(prisma, userId, householdId, ['OWNER']);
+      if (membershipId === owner.id) {
+        throw new HttpError(400, 'Use leave, or transfer ownership first');
+      }
+      await detachMember(prisma, await findActiveTarget(householdId, membershipId));
     },
 
     // The owner hands the household to another member and becomes an earner, so
