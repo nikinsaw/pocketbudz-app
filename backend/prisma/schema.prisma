@@ -88,6 +88,8 @@ model Membership {
   role        Role
   joinedAt    DateTime  @default(now())
   leftAt      DateTime?
+  // Set once the member has uploaded their solo on-device data; blocks a second upload.
+  importedAt  DateTime?
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
