@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { ZodError } from 'zod';
 import { HttpError } from './errors.js';
+import { registerAllowanceRoutes } from './allowances/routes.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import { registerEnvelopeRoutes } from './envelopes/routes.js';
 import { registerHouseholdRoutes } from './households/routes.js';
@@ -29,5 +30,6 @@ export function buildApp(deps: Services) {
   app.register(async (instance) => registerTransactionRoutes(instance, deps.transactions));
   app.register(async (instance) => registerIncomeRoutes(instance, deps.income));
   app.register(async (instance) => registerVisibilityRoutes(instance, deps.visibility));
+  app.register(async (instance) => registerAllowanceRoutes(instance, deps.allowances));
   return app;
 }

@@ -213,5 +213,6 @@ model Allowance {
   from      Membership @relation("AllowanceFrom", fields: [fromId], references: [id], onDelete: Cascade)
   to        Membership @relation("AllowanceTo", fields: [toId], references: [id], onDelete: Cascade)
 
+  @@unique([fromId, toId])
   @@index([householdId])
 }
