@@ -5,6 +5,7 @@ import { createAuthService } from './auth/service.js';
 import { createEnvelopeService } from './envelopes/service.js';
 import { createHouseholdService } from './households/service.js';
 import { createIncomeService } from './income/service.js';
+import { createMemberService } from './members/service.js';
 import { createTransactionService } from './transactions/service.js';
 import { createVisibilityService } from './visibility/service.js';
 
@@ -19,6 +20,7 @@ export function createServices(prisma: PrismaClient, verifyGoogle: GoogleVerifie
     income: createIncomeService(prisma),
     visibility: createVisibilityService(prisma),
     allowances: createAllowanceService(prisma),
+    members: createMemberService(prisma),
   };
 }
 
