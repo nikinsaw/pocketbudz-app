@@ -75,3 +75,30 @@ export async function pressText(root, text) {
 }
 
 export const act = ReactTestRenderer.act;
+
+// Types into the TextInput with this placeholder.
+export async function typeInto(root, placeholder, text) {
+  const input = root.findAll(
+    (node) => node.props.placeholder === placeholder && node.props.onChangeText,
+  )[0];
+  if (!input) {
+    throw new Error(`No input with placeholder "${placeholder}"`);
+  }
+  await ReactTestRenderer.act(async () => {
+    input.props.onChangeText(text);
+  });
+}
+
+// The button (accessibilityRole="button") whose label contains `text`, so tests can
+// inspect its disabled state.
+export function buttonWithText(root, text) {
+  let node = root.findAll(
+    (n) => n.type === 'Text' && flatten(n.props.children).includes(text),
+  )[0];
+  while (node && node.props.accessibilityRole !== 'button') {
+    node = node.parent;
+  }
+  return node;
+}
+
+export const isDisabled = (button) => button.props.accessibilityState?.disabled === true;
