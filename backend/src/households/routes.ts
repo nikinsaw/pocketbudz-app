@@ -9,7 +9,16 @@ const createBody = z.object({
 });
 const inviteBody = z.object({ role: z.enum(['EARNER', 'SPENDER']) });
 const joinBody = z.object({ code: z.string().min(1).max(64), consentVersion: z.string().min(1) });
-const idParams = z.object({ id: z.string().min(1) });
+const settingsBody = z
+  .object({
+    name: z.string().trim().min(1).max(60),
+    currencyFormat: z.enum(['indian', 'international']),
+    // 28 keeps the cycle start valid in every month, including February.
+    budgetCycleStartDay: z.number().int().min(1).max(28),
+  })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, 'No changes');
+const idParams =z.object({ id: z.string().min(1) });
 
 export function registerHouseholdRoutes(app: FastifyInstance, households: HouseholdService) {
   // Public: the app shows this agreement version and sends it back on accept.
@@ -24,6 +33,16 @@ export function registerHouseholdRoutes(app: FastifyInstance, households: Househ
   });
 
   app.get('/households', guarded, async (req) => households.listMine(req.userId));
+
+  app.get('/households/:id', guarded, async (req) => {
+    const { id } = idParams.parse(req.params);
+    return households.getSettings(req.userId, id);
+  });
+
+  app.patch('/households/:id', guarded, async (req) => {
+    const { id } = idParams.parse(req.params);
+    return households.updateSettings(req.userId, id, settingsBody.parse(req.body));
+  });
 
   app.get('/households/:id/members', guarded, async (req) => {
     const { id } = idParams.parse(req.params);

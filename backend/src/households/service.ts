@@ -37,6 +37,23 @@ export function createHouseholdService(prisma: PrismaClient) {
       });
     },
 
+    async getSettings(userId: string, householdId: string) {
+      await requireMembership(prisma, userId, householdId);
+      const h = await prisma.household.findUniqueOrThrow({ where: { id: householdId } });
+      return { id: h.id, name: h.name, currencyFormat: h.currencyFormat, budgetCycleStartDay: h.budgetCycleStartDay };
+    },
+
+    // Owner-only: these apply to everyone in the household.
+    async updateSettings(
+      userId: string,
+      householdId: string,
+      changes: { name?: string; currencyFormat?: string; budgetCycleStartDay?: number },
+    ) {
+      await requireMembership(prisma, userId, householdId, ['OWNER']);
+      const h = await prisma.household.update({ where: { id: householdId }, data: changes });
+      return { id: h.id, name: h.name, currencyFormat: h.currencyFormat, budgetCycleStartDay: h.budgetCycleStartDay };
+    },
+
     async listMine(userId: string) {
       const memberships = await prisma.membership.findMany({
         where: { userId, leftAt: null },
