@@ -11,6 +11,10 @@ const initialState = {
   user: null,
   // { id, name, role, membershipId } - v1 allows one household per account.
   current: null,
+  // membershipId whose on-device data has been uploaded to the household. Tracked per
+  // membership (not household) so leaving and rejoining offers the upload again, as the
+  // server allows one upload per membership.
+  importedFor: null,
 };
 
 const householdSlice = createSlice({
@@ -24,11 +28,14 @@ const householdSlice = createSlice({
     householdSet: (state, action) => {
       state.current = action.payload;
     },
+    dataImported: (state, action) => {
+      state.importedFor = action.payload;
+    },
     signedOut: () => initialState,
   },
 });
 
-export const { signedIn, householdSet, signedOut } = householdSlice.actions;
+export const { signedIn, householdSet, dataImported, signedOut } = householdSlice.actions;
 
 // 'solo' (on this device only) | 'signed-in' (has an account, no household yet) |
 // 'household' (sharing a budget).

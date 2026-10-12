@@ -1,4 +1,5 @@
-import { householdSet, signedIn, signedOut } from '../store/slices/householdSlice';
+import { buildSoloData } from '../utils/soloData';
+import { dataImported, householdSet, signedIn, signedOut } from '../store/slices/householdSlice';
 
 // Redux thunks that keep the household slice in step with the backend. Built from
 // injected `api`/`googleAuth` so they are testable without a phone; the app's real
@@ -90,6 +91,41 @@ export function createHouseholdActions({ api, googleAuth }) {
       async (dispatch, getState) => {
         const current = getState().household.current;
         return api.request(`/households/${current.id}/invites`, { method: 'POST', body: { role } });
+      },
+
+    // One-time upload of this phone's envelopes, transactions and income into the household.
+    // scope: 'PERSONAL' (only mine, shared by my sharing choices) or 'SHARED' (everyone sees
+    // the envelopes and the spending in them; owners and earners only).
+    // Resolves { envelopes, transactions, incomeImported, skipped }. The phone's own data is
+    // left untouched.
+    importSoloData:
+      ({ scope }) =>
+      async (dispatch, getState) => {
+        const state = getState();
+        const current = state.household.current;
+        const { payload, skipped } = buildSoloData(
+          {
+            envelopes: state.budget.envelopes,
+            transactions: state.transactions.items,
+            monthlyIncome: state.profile.monthlyIncome,
+          },
+          scope,
+        );
+        try {
+          const result = await api.request(`/households/${current.id}/import`, {
+            method: 'POST',
+            body: payload,
+          });
+          dispatch(dataImported(current.membershipId));
+          return { ...result, skipped };
+        } catch (error) {
+          // 409 = this membership already uploaded (e.g. an earlier attempt whose reply
+          // was lost). Remember that so the offer disappears instead of failing forever.
+          if (error.status === 409) {
+            dispatch(dataImported(current.membershipId));
+          }
+          throw error;
+        }
       },
 
     leaveHousehold: () => async (dispatch, getState) => {

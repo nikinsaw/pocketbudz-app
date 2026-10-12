@@ -1,6 +1,7 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { persistReducer, persistStore } from 'redux-persist';
 import householdReducer, {
+  dataImported,
   householdSet,
   selectHouseholdMode,
   signedIn,
@@ -17,7 +18,7 @@ const makeStore = () => configureStore({ reducer: { household: householdReducer 
 describe('householdSlice', () => {
   it('starts in solo mode, so existing users are untouched', () => {
     const store = makeStore();
-    expect(store.getState().household).toEqual({ user: null, current: null });
+    expect(store.getState().household).toEqual({ user: null, current: null, importedFor: null });
     expect(selectHouseholdMode(store.getState())).toBe('solo');
   });
 
@@ -42,7 +43,7 @@ describe('householdSlice', () => {
     store.dispatch(signedIn(user));
     store.dispatch(householdSet(home));
     store.dispatch(signedOut());
-    expect(store.getState().household).toEqual({ user: null, current: null });
+    expect(store.getState().household).toEqual({ user: null, current: null, importedFor: null });
   });
 
   // Existing v1.0.0 users have saved state from before this slice existed. Run it
@@ -91,7 +92,7 @@ describe('householdSlice', () => {
     const state = store.getState();
     expect(state.profile).toEqual({ name: 'Existing User', monthlyIncome: 50000 });
     expect(state.transactions.items).toHaveLength(1);
-    expect(state.household).toEqual({ user: null, current: null });
+    expect(state.household).toEqual({ user: null, current: null, importedFor: null });
     expect(selectHouseholdMode(state)).toBe('solo');
   });
 });
@@ -123,7 +124,7 @@ describe('household actions', () => {
   it('signIn stores the user and picks up an existing household', async () => {
     const { store, actions } = setup({ responses: { 'GET /households': [serverHome] } });
     await store.dispatch(actions.signIn());
-    expect(store.getState().household).toEqual({ user, current: home });
+    expect(store.getState().household).toEqual({ user, current: home, importedFor: null });
     expect(selectHouseholdMode(store.getState())).toBe('household');
   });
 
@@ -266,6 +267,103 @@ describe('household actions', () => {
     const { api, actions } = setup({ responses: { 'GET /consent': { version: '2026-10-v1' } } });
     await expect(actions.fetchConsentVersion()).resolves.toBe('2026-10-v1');
     expect(api.request).toHaveBeenCalledWith('/consent', { auth: false });
+  });
+});
+
+describe('importSoloData', () => {
+  const phone = {
+    budget: { envelopes: [{ id: 'e1', categoryKey: 'food', icon: '🍕', title: 'Food', colorKey: 'food', type: 'spending', budgetLimit: 5000 }] },
+    transactions: {
+      items: [
+        { id: 't1', merchant: 'Cafe', category: 'Food', amount: 120.5, date: '2026-10-02' },
+        { id: 't2', merchant: 'Broken', category: 'Food', amount: 10, date: '2026-02-31' },
+      ],
+    },
+    profile: { monthlyIncome: 40000 },
+  };
+  const passthrough = (initial) => (state = initial) => state;
+
+  function setupImport(responses) {
+    const base = setup({ responses });
+    const store = configureStore({
+      reducer: {
+        household: householdReducer,
+        budget: passthrough(phone.budget),
+        transactions: passthrough(phone.transactions),
+        profile: passthrough(phone.profile),
+      },
+    });
+    store.dispatch(signedIn(user));
+    store.dispatch(householdSet(home));
+    return { ...base, store };
+  }
+
+  it('uploads what is on the phone, remembers it for this membership and reports skipped rows', async () => {
+    const { store, calls, actions } = setupImport({
+      'POST /households/h1/import': { envelopes: 1, transactions: 1, incomeImported: true },
+    });
+    const result = await store.dispatch(actions.importSoloData({ scope: 'SHARED' }));
+
+    expect(result).toEqual({
+      envelopes: 1,
+      transactions: 1,
+      incomeImported: true,
+      skipped: { envelopes: 0, transactions: 1 },
+    });
+    const [method, path, body] = calls[0];
+    expect([method, path]).toEqual(['POST', '/households/h1/import']);
+    expect(body.envelopeScope).toBe('SHARED');
+    expect(body.monthlyIncome).toBe(40000);
+    expect(body.transactions).toEqual([{ merchant: 'Cafe', category: 'Food', amount: 120.5, date: '2026-10-02' }]);
+    expect(store.getState().household.importedFor).toBe('m1');
+  });
+
+  it('treats "already imported" (409) as done, so the offer goes away instead of failing forever', async () => {
+    const { store, actions } = setupImport({
+      'POST /households/h1/import': () => {
+        throw apiError(409);
+      },
+    });
+    await expect(store.dispatch(actions.importSoloData({ scope: 'PERSONAL' }))).rejects.toMatchObject({ status: 409 });
+    expect(store.getState().household.importedFor).toBe('m1');
+  });
+
+  it.each([0, 400, 403, 429, 500])('does NOT mark it imported when the upload fails with %i, so they can retry', async (status) => {
+    const { store, actions } = setupImport({
+      'POST /households/h1/import': () => {
+        throw apiError(status);
+      },
+    });
+    await expect(store.dispatch(actions.importSoloData({ scope: 'PERSONAL' }))).rejects.toMatchObject({ status });
+    expect(store.getState().household.importedFor).toBeNull();
+  });
+
+  it('leaves the phone’s own data untouched', async () => {
+    const { store, actions } = setupImport({ 'POST /households/h1/import': { envelopes: 1, transactions: 1, incomeImported: true } });
+    const before = JSON.stringify([store.getState().budget, store.getState().transactions, store.getState().profile]);
+    await store.dispatch(actions.importSoloData({ scope: 'PERSONAL' }));
+    const after = JSON.stringify([store.getState().budget, store.getState().transactions, store.getState().profile]);
+    expect(after).toBe(before);
+  });
+});
+
+describe('importedFor', () => {
+  it('belongs to one membership: a new membership (rejoining) is offered the upload again', () => {
+    const store = makeStore();
+    store.dispatch(signedIn(user));
+    store.dispatch(householdSet(home));
+    store.dispatch(dataImported('m1'));
+    expect(store.getState().household.importedFor).toBe('m1');
+    store.dispatch(householdSet({ ...home, membershipId: 'm2' }));
+    expect(store.getState().household.importedFor === store.getState().household.current.membershipId).toBe(false);
+  });
+
+  it('is cleared on sign out', () => {
+    const store = makeStore();
+    store.dispatch(signedIn(user));
+    store.dispatch(dataImported('m1'));
+    store.dispatch(signedOut());
+    expect(store.getState().household.importedFor).toBeNull();
   });
 });
 
