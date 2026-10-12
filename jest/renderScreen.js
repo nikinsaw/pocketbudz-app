@@ -69,6 +69,11 @@ export async function pressText(root, text) {
   if (!node) {
     throw new Error(`"${text}" is not inside anything pressable`);
   }
+  // A real tap on a disabled button does nothing (Pressable swallows it), so
+  // neither does this - otherwise tests could "press" buttons users cannot.
+  if (node.props.disabled === true) {
+    return;
+  }
   await ReactTestRenderer.act(async () => {
     await node.props.onPress();
   });
