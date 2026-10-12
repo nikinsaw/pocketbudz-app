@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../auth/authenticate.js';
+import { MAX_PAISE } from '../money.js';
 import type { IncomeService } from './service.js';
 
 const fields = z.object({
   label: z.string().trim().min(1).max(60),
-  amount: z.number().int().positive().max(100_000_000_00), // paise per cycle
+  amount: z.number().int().positive().max(MAX_PAISE), // paise per cycle
 });
 const updateBody = fields.partial().refine((v) => Object.keys(v).length > 0, 'No changes');
 const householdParams = z.object({ id: z.string().min(1) });
