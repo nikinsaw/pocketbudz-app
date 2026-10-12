@@ -1,5 +1,7 @@
 module.exports = {
   root: true,
+  // backend/ is a separate Node project with its own tooling.
+  ignorePatterns: ['backend/'],
   extends: '@react-native',
   overrides: [
     {
