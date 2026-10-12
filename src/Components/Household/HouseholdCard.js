@@ -38,14 +38,16 @@ function HouseholdCard() {
     },
     household: {
       title: current?.name ?? 'Your household',
-      subtitle: current ? `You’re the ${ROLE_LABEL[current.role] ?? 'member'}. Tap to manage.` : 'Tap to manage.',
+      subtitle: current
+        ? `You’re the ${ROLE_LABEL[current.role] ?? 'member'}. Tap to see this cycle’s budget.`
+        : 'Tap to see this cycle’s budget.',
     },
   }[mode];
 
   return (
     <BaseCard
       clickable
-      onPress={() => navigation.navigate('Household')}
+      onPress={() => navigation.navigate(mode === 'household' ? 'HouseholdDashboard' : 'Household')}
       padding={18}
       borderRadius={20}
     >
