@@ -48,11 +48,19 @@ describe('HouseholdCard', () => {
     expect(hasText(root, '✕')).toBe(false); // no dismiss once they've started
   });
 
-  it('shows the household and the member’s role once in one', async () => {
+  it('shows the household and the member’s role once in one, and opens its dashboard', async () => {
     const { root } = await renderScreen(HouseholdCard, { household: { user, current: home } });
     expect(hasText(root, 'Sharma family')).toBe(true);
     expect(hasText(root, 'Earner')).toBe(true);
+    expect(hasText(root, 'budget')).toBe(true);
     await pressText(root, 'Sharma family');
+    expect(mockNavigate).toHaveBeenCalledWith('HouseholdDashboard');
+    expect(mockNavigate).not.toHaveBeenCalledWith('Household');
+  });
+
+  it('sends people who have not finished setup to the Household screen, not an empty dashboard', async () => {
+    const { root } = await renderScreen(HouseholdCard, { household: { user, current: null } });
+    await pressText(root, 'Finish setting up your household');
     expect(mockNavigate).toHaveBeenCalledWith('Household');
   });
 });

@@ -25,6 +25,7 @@ function HouseholdStatus({
   createInvite,
   onLeave,
   onSignOut,
+  onOpenDashboard,
   busy,
   error,
   importSection = null,
@@ -77,6 +78,10 @@ function HouseholdStatus({
         <Text style={styles.heroName}>{household.name}</Text>
         <Text style={styles.heroRole}>You are the {ROLE_LABEL[household.role] ?? 'member'}</Text>
       </View>
+
+      <BaseButton onPress={onOpenDashboard} style={styles.dashboardButton}>
+        <Text style={styles.primaryLabel}>View this cycle{'’'}s dashboard</Text>
+      </BaseButton>
 
       <Text style={styles.sectionTitle}>Members</Text>
       <View style={styles.card}>
@@ -178,6 +183,13 @@ const getStyles = (colors) =>
     hero: { backgroundColor: colors.gradientEnd, borderRadius: 20, padding: 20, marginBottom: 24 },
     heroName: { color: colors.white, fontSize: 24, fontWeight: '800' },
     heroRole: { color: colors.onGradientMuted, fontSize: 14, marginTop: 4 },
+    dashboardButton: {
+      backgroundColor: colors.gradientStart,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginBottom: 24,
+    },
     sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginBottom: 10 },
     card: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 24 },
     memberRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },

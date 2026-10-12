@@ -6,6 +6,7 @@ import { ZodError } from 'zod';
 import { HttpError } from './errors.js';
 import { registerAccountRoutes } from './account/routes.js';
 import { registerAllowanceRoutes } from './allowances/routes.js';
+import { registerDashboardRoutes } from './dashboard/routes.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import { registerEnvelopeRoutes } from './envelopes/routes.js';
 import { registerHouseholdRoutes } from './households/routes.js';
@@ -37,5 +38,6 @@ export function buildApp(deps: Services) {
   app.register(async (instance) => registerMemberRoutes(instance, deps.members));
   app.register(async (instance) => registerImportRoutes(instance, deps.importer));
   app.register(async (instance) => registerAccountRoutes(instance, deps.account));
+  app.register(async (instance) => registerDashboardRoutes(instance, deps.dashboard));
   return app;
 }

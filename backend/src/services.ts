@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { createAccountService } from './account/service.js';
 import { createAllowanceService } from './allowances/service.js';
+import { createDashboardService } from './dashboard/service.js';
 import type { GoogleVerifier } from './auth/googleVerifier.js';
 import { createAuthService } from './auth/service.js';
 import { createEnvelopeService } from './envelopes/service.js';
@@ -25,6 +26,7 @@ export function createServices(prisma: PrismaClient, verifyGoogle: GoogleVerifie
     members: createMemberService(prisma),
     importer: createImportService(prisma),
     account: createAccountService(prisma),
+    dashboard: createDashboardService(prisma),
   };
 }
 

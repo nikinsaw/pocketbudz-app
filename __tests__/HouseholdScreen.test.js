@@ -5,6 +5,12 @@ import { AGREEMENT_VERSION } from '../src/data/householdAgreement';
 import { dataImported, householdSet, signedIn, signedOut } from '../src/store/slices/householdSlice';
 import { act, allText, hasText, pressText, renderScreen, typeInto } from '../jest/renderScreen';
 
+const mockNavigate = jest.fn();
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({ navigate: mockNavigate, goBack: jest.fn() }),
+}));
+
 jest.mock('../src/services/householdApp', () => ({
   householdActions: {
     signIn: jest.fn(),
@@ -175,6 +181,12 @@ describe('HouseholdScreen household step (in a household)', () => {
     expect(hasText(root, 'Sharma family')).toBe(true);
     expect(hasText(root, 'Asha (you)')).toBe(true);
     expect(householdActions.fetchMembers).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the dashboard from the household view', async () => {
+    const { root } = await renderScreen(HouseholdScreen, inHousehold);
+    await pressText(root, 'dashboard');
+    expect(mockNavigate).toHaveBeenCalledWith('HouseholdDashboard');
   });
 
   it('asks before leaving and says what happens to their data', async () => {

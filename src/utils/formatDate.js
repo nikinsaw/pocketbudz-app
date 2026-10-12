@@ -13,6 +13,15 @@ export function formatRelativeDate(isoDate) {
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+// Today (or the given date) as YYYY-MM-DD in the phone's own time zone - not UTC, which
+// would call it tomorrow/yesterday for a few hours either side of midnight in India.
+export function toLocalISODate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // "YYYY-MM" — sortable/comparable grouping key for a transaction's month,
 // independent of its display label below.
 export function getMonthKey(isoDate) {
