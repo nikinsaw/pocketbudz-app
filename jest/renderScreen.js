@@ -7,15 +7,32 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '../src/theme/ThemeContext';
 import householdReducer from '../src/store/slices/householdSlice';
 import settingsReducer from '../src/store/slices/settingsSlice';
+import budgetReducer from '../src/store/slices/budgetSlice';
+import transactionsReducer from '../src/store/slices/transactionsSlice';
+import profileReducer from '../src/store/slices/profileSlice';
 
 // Renders a screen with the providers the app gives it (Redux, theme, navigation,
 // safe area). `household` seeds the household slice: { user, current };
-// `settings` seeds settings overrides, e.g. { householdPromoDismissed: true }.
-export async function renderScreen(Screen, { household, settings } = {}) {
+// `settings` seeds settings overrides, e.g. { householdPromoDismissed: true };
+// `phone` seeds the on-device data: { envelopes, transactions, monthlyIncome }.
+export async function renderScreen(Screen, { household, settings, phone } = {}) {
   const store = configureStore({
-    reducer: { household: householdReducer, settings: settingsReducer },
+    reducer: {
+      household: householdReducer,
+      settings: settingsReducer,
+      budget: budgetReducer,
+      transactions: transactionsReducer,
+      profile: profileReducer,
+    },
     preloadedState: {
-      ...(household ? { household } : {}),
+      ...(household ? { household: { importedFor: null, ...household } } : {}),
+      ...(phone
+        ? {
+            budget: { envelopes: phone.envelopes ?? [] },
+            transactions: { items: phone.transactions ?? [] },
+            profile: { ...profileReducer(undefined, { type: '@@init' }), monthlyIncome: phone.monthlyIncome ?? null },
+          }
+        : {}),
       ...(settings ? { settings: { ...settingsReducer(undefined, { type: '@@init' }), ...settings } } : {}),
     },
   });

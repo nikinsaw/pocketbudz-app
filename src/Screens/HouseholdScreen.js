@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, StatusBar, Alert } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useDispatch, useSelector } from 'react-redux';
@@ -6,10 +6,12 @@ import CustomHeader from '../Components/Common/CustomHeader';
 import HouseholdIntro from '../Components/Household/HouseholdIntro';
 import HouseholdSetup from '../Components/Household/HouseholdSetup';
 import HouseholdStatus from '../Components/Household/HouseholdStatus';
+import ImportDataCard from '../Components/Household/ImportDataCard';
 import { useTheme } from '../theme/ThemeContext';
 import { householdActions } from '../services/householdApp';
 import { selectHouseholdMode } from '../store/slices/householdSlice';
 import { describeHouseholdError, isCancelled } from '../utils/householdErrors';
+import { buildSoloData } from '../utils/soloData';
 
 // One route for all of Household Mode. Which step shows follows the account state:
 //   solo       -> intro + Google sign-in
@@ -23,6 +25,23 @@ function HouseholdScreen() {
   const user = useSelector((state) => state.household.user);
   const household = useSelector((state) => state.household.current);
   const hasAccount = user !== null;
+
+  // What is on this phone, for the one-time upload offer.
+  const phoneEnvelopes = useSelector((state) => state.budget.envelopes);
+  const phoneTransactions = useSelector((state) => state.transactions.items);
+  const monthlyIncome = useSelector((state) => state.profile.monthlyIncome);
+  const importedFor = useSelector((state) => state.household.importedFor);
+  const phone = useMemo(
+    () =>
+      buildSoloData(
+        { envelopes: phoneEnvelopes, transactions: phoneTransactions, monthlyIncome },
+        'PERSONAL',
+      ),
+    [phoneEnvelopes, phoneTransactions, monthlyIncome],
+  );
+  const [importBusy, setImportBusy] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [importResult, setImportResult] = useState(null);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(''); // sign-in problems, shown by the intro
@@ -58,6 +77,32 @@ function HouseholdScreen() {
   // Stable identity: HouseholdStatus loads members in an effect keyed on this.
   const fetchMembers = useCallback(() => dispatch(householdActions.fetchMembers()), [dispatch]);
   const createInvite = useCallback((input) => dispatch(householdActions.createInvite(input)), [dispatch]);
+
+  const handleImport = async ({ scope }) => {
+    setImportBusy(true);
+    setImportError('');
+    try {
+      setImportResult(await dispatch(householdActions.importSoloData({ scope })));
+    } catch (e) {
+      setImportError(describeHouseholdError(e));
+    } finally {
+      setImportBusy(false);
+    }
+  };
+
+  const alreadyImported = household && importedFor === household.membershipId;
+  const importSection =
+    household && (!alreadyImported || importResult) ? (
+      <ImportDataCard
+        counts={phone.counts}
+        hasIncome={phone.payload.monthlyIncome !== null}
+        role={household.role}
+        onImport={handleImport}
+        busy={importBusy}
+        error={importError}
+        result={importResult}
+      />
+    ) : null;
 
   const confirmLeave = () =>
     Alert.alert(
@@ -107,6 +152,7 @@ function HouseholdScreen() {
             onSignOut={() => run(householdActions.signOut())}
             busy={busy}
             error={error}
+            importSection={importSection}
           />
         ) : null}
       </KeyboardAwareScrollView>

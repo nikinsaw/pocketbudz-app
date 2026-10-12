@@ -2,7 +2,7 @@ import { Alert } from 'react-native';
 import HouseholdScreen from '../src/Screens/HouseholdScreen';
 import { householdActions } from '../src/services/householdApp';
 import { AGREEMENT_VERSION } from '../src/data/householdAgreement';
-import { householdSet, signedIn, signedOut } from '../src/store/slices/householdSlice';
+import { dataImported, householdSet, signedIn, signedOut } from '../src/store/slices/householdSlice';
 import { act, allText, hasText, pressText, renderScreen, typeInto } from '../jest/renderScreen';
 
 jest.mock('../src/services/householdApp', () => ({
@@ -16,6 +16,7 @@ jest.mock('../src/services/householdApp', () => ({
     fetchMembers: jest.fn(),
     createInvite: jest.fn(),
     leaveHousehold: jest.fn(),
+    importSoloData: jest.fn(),
   },
 }));
 
@@ -34,6 +35,9 @@ beforeEach(() => {
   householdActions.fetchConsentVersion.mockImplementation(() => Promise.resolve(AGREEMENT_VERSION));
   householdActions.fetchMembers.mockImplementation(() => () => Promise.resolve(members));
   householdActions.leaveHousehold.mockImplementation(noop);
+  householdActions.importSoloData.mockImplementation(
+    () => () => Promise.resolve({ envelopes: 1, transactions: 2, incomeImported: false, skipped: { envelopes: 0, transactions: 0 } }),
+  );
 });
 
 describe('HouseholdScreen in solo mode', () => {
@@ -223,6 +227,82 @@ describe('HouseholdScreen household step (in a household)', () => {
     const { root } = await renderScreen(HouseholdScreen, inHousehold);
     await pressText(root, 'Sign out');
     expect(hasText(root, 'Continue with Google')).toBe(true);
+  });
+});
+
+describe('HouseholdScreen one-time upload of this phone’s data', () => {
+  const phone = {
+    envelopes: [{ id: 'e1', categoryKey: 'food', icon: 'x', title: 'Food', colorKey: 'food', type: 'spending', budgetLimit: 5000 }],
+    transactions: [
+      { id: 't1', merchant: 'Cafe', category: 'Food', amount: 120, date: '2026-10-02' },
+      { id: 't2', merchant: 'Shop', category: 'Food', amount: 80, date: '2026-10-03' },
+    ],
+    monthlyIncome: null,
+  };
+  const spenderHome = { ...home, role: 'SPENDER' };
+
+  it('offers the upload with the real counts from the phone', async () => {
+    const { root } = await renderScreen(HouseholdScreen, { household: { user, current: home }, phone });
+    expect(hasText(root, 'Bring in your data from this phone')).toBe(true);
+    expect(hasText(root, '2 transactions and 1 envelope')).toBe(true);
+  });
+
+  it('does not count rows that could never upload', async () => {
+    const dirty = { ...phone, transactions: [...phone.transactions, { id: 't3', merchant: 'x', category: 'y', amount: 5, date: 'not-a-date' }] };
+    const { root } = await renderScreen(HouseholdScreen, { household: { user, current: home }, phone: dirty });
+    expect(hasText(root, '2 transactions')).toBe(true);
+    expect(hasText(root, '3 transactions')).toBe(false);
+  });
+
+  it('shows no offer when the phone has nothing to upload', async () => {
+    const { root } = await renderScreen(HouseholdScreen, { household: { user, current: home } });
+    expect(hasText(root, 'Bring in your data')).toBe(false);
+  });
+
+  it('shows no offer once this membership has already uploaded', async () => {
+    const { root } = await renderScreen(HouseholdScreen, {
+      household: { user, current: home, importedFor: 'm1' },
+      phone,
+    });
+    expect(hasText(root, 'Bring in your data')).toBe(false);
+  });
+
+  it('offers it again for a new membership (left and rejoined)', async () => {
+    const { root } = await renderScreen(HouseholdScreen, {
+      household: { user, current: { ...home, membershipId: 'm2' }, importedFor: 'm1' },
+      phone,
+    });
+    expect(hasText(root, 'Bring in your data')).toBe(true);
+  });
+
+  it('uploads as personal by default and then confirms what happened', async () => {
+    householdActions.importSoloData.mockImplementation(({ scope }) => (dispatch) => {
+      dispatch(dataImported('m1'));
+      return Promise.resolve({ envelopes: 1, transactions: 2, incomeImported: false, skipped: { envelopes: 0, transactions: 0 }, scope });
+    });
+    const { root } = await renderScreen(HouseholdScreen, { household: { user, current: home }, phone });
+    await pressText(root, 'Upload to household');
+    expect(householdActions.importSoloData).toHaveBeenCalledWith({ scope: 'PERSONAL' });
+    expect(hasText(root, 'Your data is in the household')).toBe(true);
+    expect(hasText(root, 'Upload to household')).toBe(false);
+  });
+
+  it('sends a spender’s upload as personal and offers no sharing option', async () => {
+    const { root } = await renderScreen(HouseholdScreen, { household: { user, current: spenderHome }, phone });
+    expect(hasText(root, 'Share with the household')).toBe(false);
+    await pressText(root, 'Upload to household');
+    expect(householdActions.importSoloData).toHaveBeenCalledWith({ scope: 'PERSONAL' });
+  });
+
+  it('shows what went wrong and keeps the offer so they can retry', async () => {
+    householdActions.importSoloData.mockImplementation(
+      () => () => Promise.reject(Object.assign(new Error('x'), { status: 0 })),
+    );
+    const { root } = await renderScreen(HouseholdScreen, { household: { user, current: home }, phone });
+    await pressText(root, 'Upload to household');
+    expect(hasText(root, 'internet connection')).toBe(true);
+    expect(hasText(root, 'Upload to household')).toBe(true);
+    expect(hasText(root, 'Your data is in the household')).toBe(false);
   });
 });
 

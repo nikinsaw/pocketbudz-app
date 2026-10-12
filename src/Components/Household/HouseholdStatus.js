@@ -27,6 +27,7 @@ function HouseholdStatus({
   onSignOut,
   busy,
   error,
+  importSection = null,
   share = Share.share,
 }) {
   const { colors } = useTheme();
@@ -104,6 +105,8 @@ function HouseholdStatus({
           </View>
         ) : null}
       </View>
+
+      {importSection}
 
       {isOwner ? (
         <View>
