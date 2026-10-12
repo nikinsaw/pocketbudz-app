@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../auth/authenticate.js';
+import { MAX_PAISE } from '../money.js';
 import type { AllowanceService } from './service.js';
 
 const householdParams = z.object({ id: z.string().min(1) });
 const spenderParams = householdParams.extend({ spenderId: z.string().min(1) });
-const body = z.object({ amount: z.number().int().positive().max(100_000_000_00) }); // paise per cycle
+const body = z.object({ amount: z.number().int().positive().max(MAX_PAISE) }); // paise per cycle
 
 export function registerAllowanceRoutes(app: FastifyInstance, allowances: AllowanceService) {
   const guarded = { preHandler: authenticate };

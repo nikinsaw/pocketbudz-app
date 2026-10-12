@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../auth/authenticate.js';
+import { MAX_PAISE } from '../money.js';
 import type { EnvelopeService } from './service.js';
 
 const fields = z.object({
@@ -9,7 +10,7 @@ const fields = z.object({
   title: z.string().trim().min(1).max(40),
   colorKey: z.string().trim().min(1).max(40),
   type: z.string().trim().min(1).max(20),
-  budgetLimit: z.number().int().min(0).max(100_000_000_00),
+  budgetLimit: z.number().int().min(0).max(MAX_PAISE),
 });
 const createBody = fields.extend({ scope: z.enum(['SHARED', 'PERSONAL']) });
 const updateBody = fields.partial().refine((v) => Object.keys(v).length > 0, 'No changes');

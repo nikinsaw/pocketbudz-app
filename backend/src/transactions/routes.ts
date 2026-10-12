@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../auth/authenticate.js';
+import { MAX_PAISE } from '../money.js';
 import type { TransactionService } from './service.js';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
@@ -8,7 +9,7 @@ const fields = z.object({
   envelopeId: z.string().min(1).nullable(),
   merchant: z.string().trim().min(1).max(60),
   category: z.string().trim().min(1).max(40),
-  amount: z.number().int().positive().max(100_000_000_00), // paise
+  amount: z.number().int().positive().max(MAX_PAISE), // paise
   date: isoDate,
 });
 const updateBody = fields.partial().refine((v) => Object.keys(v).length > 0, 'No changes');

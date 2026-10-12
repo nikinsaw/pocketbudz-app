@@ -8,6 +8,7 @@ import { registerAllowanceRoutes } from './allowances/routes.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import { registerEnvelopeRoutes } from './envelopes/routes.js';
 import { registerHouseholdRoutes } from './households/routes.js';
+import { registerImportRoutes } from './importer/routes.js';
 import { registerIncomeRoutes } from './income/routes.js';
 import { registerMemberRoutes } from './members/routes.js';
 import type { Services } from './services.js';
@@ -33,5 +34,6 @@ export function buildApp(deps: Services) {
   app.register(async (instance) => registerVisibilityRoutes(instance, deps.visibility));
   app.register(async (instance) => registerAllowanceRoutes(instance, deps.allowances));
   app.register(async (instance) => registerMemberRoutes(instance, deps.members));
+  app.register(async (instance) => registerImportRoutes(instance, deps.importer));
   return app;
 }
