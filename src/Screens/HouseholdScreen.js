@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, StatusBar, Alert } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import CustomHeader from '../Components/Common/CustomHeader';
 import HouseholdIntro from '../Components/Household/HouseholdIntro';
 import HouseholdSetup from '../Components/Household/HouseholdSetup';
@@ -21,6 +22,7 @@ function HouseholdScreen() {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const mode = useSelector(selectHouseholdMode);
   const user = useSelector((state) => state.household.user);
   const household = useSelector((state) => state.household.current);
@@ -150,6 +152,7 @@ function HouseholdScreen() {
             createInvite={createInvite}
             onLeave={confirmLeave}
             onSignOut={() => run(householdActions.signOut())}
+            onOpenDashboard={() => navigation.navigate('HouseholdDashboard')}
             busy={busy}
             error={error}
             importSection={importSection}

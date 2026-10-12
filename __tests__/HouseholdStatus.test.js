@@ -20,6 +20,7 @@ function setup({ role = 'OWNER', ...overrides } = {}) {
     createInvite: jest.fn(async ({ role: r }) => ({ code: 'abc123XY', role: r, expiresAt: '2026-10-20' })),
     onLeave: jest.fn(),
     onSignOut: jest.fn(),
+    onOpenDashboard: jest.fn(),
     share: jest.fn(async () => ({})),
     busy: false,
     error: '',
@@ -57,6 +58,15 @@ describe('HouseholdStatus members', () => {
     await pressText(root, 'Try again');
     expect(hasText(root, 'Ravi')).toBe(true);
     expect(hasText(root, 'internet connection')).toBe(false);
+  });
+});
+
+describe('HouseholdStatus dashboard link', () => {
+  it('opens the dashboard', async () => {
+    const { props, render } = setup();
+    const { root } = await render();
+    await pressText(root, 'dashboard');
+    expect(props.onOpenDashboard).toHaveBeenCalledTimes(1);
   });
 });
 
