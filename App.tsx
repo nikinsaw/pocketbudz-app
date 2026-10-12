@@ -18,6 +18,7 @@ import CreateEnvelopeScreen from './src/Screens/CreateEnvelopeScreen';
 import EditIncomeScreen from './src/Screens/EditIncomeScreen';
 import ManageTransactionScreen from './src/Screens/ManageTransactionScreen';
 import ManageCategoriesScreen from './src/Screens/ManageCategoriesScreen';
+import HouseholdScreen from './src/Screens/HouseholdScreen';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { Provider as StoreProvider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -146,6 +147,7 @@ function RootNavigator() {
         component={ManageCategoriesScreen}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen name="Household" component={HouseholdScreen} />
     </Stack.Navigator>
   );
 }
