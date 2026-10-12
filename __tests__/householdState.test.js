@@ -203,6 +203,34 @@ describe('household actions', () => {
     expect(api.request).not.toHaveBeenCalled();
   });
 
+  it('fetchDashboard asks for the current cycle using the given local date', async () => {
+    const dashboard = { period: { from: '2026-10-01' }, headline: {} };
+    const { store, calls, actions } = setup({ responses: { 'GET /households/h1/dashboard?today=2026-10-12': dashboard } });
+    store.dispatch(signedIn(user));
+    store.dispatch(householdSet(home));
+    await expect(store.dispatch(actions.fetchDashboard({ today: '2026-10-12' }))).resolves.toEqual(dashboard);
+    expect(calls[0][1]).toBe('/households/h1/dashboard?today=2026-10-12');
+  });
+
+  it('fetchDashboard defaults to the phone’s own date, not UTC', async () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 9, 12, 0, 30)); // 00:30 local on 12 Oct
+    try {
+      const { store, calls, actions } = setup({ responses: { 'GET /households/h1/dashboard?today=2026-10-12': {} } });
+      store.dispatch(signedIn(user));
+      store.dispatch(householdSet(home));
+      await store.dispatch(actions.fetchDashboard());
+      expect(calls[0][1]).toBe('/households/h1/dashboard?today=2026-10-12');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('fetchDashboard without a household returns null and calls nothing', async () => {
+    const { store, api, actions } = setup();
+    await expect(store.dispatch(actions.fetchDashboard())).resolves.toBeNull();
+    expect(api.request).not.toHaveBeenCalled();
+  });
+
   it('createInvite asks the server for an invite with the chosen role', async () => {
     const invite = { code: 'abc123XY', role: 'SPENDER', expiresAt: '2026-10-20T00:00:00.000Z' };
     const { store, calls, actions } = setup({ responses: { 'POST /households/h1/invites': invite } });

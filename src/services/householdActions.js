@@ -1,3 +1,4 @@
+import { toLocalISODate } from '../utils/formatDate';
 import { buildSoloData } from '../utils/soloData';
 import { dataImported, householdSet, signedIn, signedOut } from '../store/slices/householdSlice';
 
@@ -73,6 +74,18 @@ export function createHouseholdActions({ api, googleAuth }) {
           body: { code: code.trim(), consentVersion },
         });
         return dispatch(syncHousehold());
+      },
+
+    // The dashboard for the current budget cycle, already filtered by what I may see.
+    // Sends my local date so the server puts "today" in the right cycle.
+    fetchDashboard:
+      ({ today = toLocalISODate() } = {}) =>
+      async (dispatch, getState) => {
+        const current = getState().household.current;
+        if (!current) {
+          return null;
+        }
+        return api.request(`/households/${current.id}/dashboard?today=${today}`);
       },
 
     // Members of my household: [{ membershipId, role, name, joinedAt }].
