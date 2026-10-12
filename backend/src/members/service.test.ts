@@ -27,6 +27,50 @@ async function setup() {
   return { owner, earner, spender, household, mOwner: m(owner.id), mEarner: m(earner.id), mSpender: m(spender.id) };
 }
 
+describe('transferOwnership', () => {
+  it('moves ownership, demotes the old owner to earner and keeps exactly one owner', async () => {
+    const { owner, spender, household, mOwner, mSpender } = await setup();
+    await allowances.set(owner.id, household.id, mSpender.id, 100000);
+    const result = await service.transferOwnership(owner.id, household.id, mSpender.id);
+    expect(result).toEqual({ ownerId: mSpender.id, formerOwnerRole: 'EARNER' });
+
+    const roles = Object.fromEntries((await prisma.membership.findMany()).map((m) => [m.id, m.role]));
+    expect(roles[mSpender.id]).toBe('OWNER');
+    expect(roles[mOwner.id]).toBe('EARNER');
+    expect(Object.values(roles).filter((r) => r === 'OWNER')).toHaveLength(1);
+    expect(await prisma.allowance.count()).toBe(0);
+    await expect(service.changeRole(owner.id, household.id, mSpender.id, 'EARNER')).rejects.toMatchObject({ status: 403 });
+    await expect(service.changeRole(spender.id, household.id, mOwner.id, 'SPENDER')).resolves.toBeTruthy();
+  });
+
+  it('lets the former owner leave afterwards', async () => {
+    const { owner, household, mEarner } = await setup();
+    await service.transferOwnership(owner.id, household.id, mEarner.id);
+    const { createHouseholdService } = await import('../households/service.js');
+    await expect(createHouseholdService(prisma).leave(owner.id, household.id)).resolves.toEqual({ householdDeleted: false });
+  });
+
+  it('is owner-only and rejects self, unknown and departed targets', async () => {
+    const { owner, earner, spender, household, mOwner, mSpender } = await setup();
+    await expect(service.transferOwnership(earner.id, household.id, mSpender.id)).rejects.toMatchObject({ status: 403 });
+    await expect(service.transferOwnership(owner.id, household.id, mOwner.id)).rejects.toMatchObject({ status: 400 });
+    await expect(service.transferOwnership(owner.id, household.id, 'nope')).rejects.toMatchObject({ status: 404 });
+    await prisma.membership.update({ where: { id: mSpender.id }, data: { leftAt: new Date(), userId: null } });
+    await expect(service.transferOwnership(owner.id, household.id, mSpender.id)).rejects.toMatchObject({ status: 404 });
+    expect(spender).toBeTruthy();
+  });
+
+  it('only one of two concurrent transfers wins', async () => {
+    const { owner, household, mEarner, mSpender } = await setup();
+    const results = await Promise.allSettled([
+      service.transferOwnership(owner.id, household.id, mEarner.id),
+      service.transferOwnership(owner.id, household.id, mSpender.id),
+    ]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(await prisma.membership.count({ where: { role: 'OWNER' } })).toBe(1);
+  });
+});
+
 describe('changeRole', () => {
   it('only the owner can change roles', async () => {
     const { earner, spender, household, mSpender, mEarner } = await setup();

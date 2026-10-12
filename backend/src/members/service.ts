@@ -48,6 +48,29 @@ export function createMemberService(prisma: PrismaClient) {
       });
       return { membershipId, role };
     },
+
+    // The owner hands the household to another member and becomes an earner, so
+    // there is always exactly one owner. The new owner can no longer receive allowances.
+    async transferOwnership(userId: string, householdId: string, membershipId: string) {
+      const owner = await requireMembership(prisma, userId, householdId, ['OWNER']);
+      if (membershipId === owner.id) {
+        throw new HttpError(400, 'You already own this household');
+      }
+      const target = await findActiveTarget(householdId, membershipId);
+      await prisma.$transaction(async (tx) => {
+        // Guarded so two concurrent transfers cannot both succeed.
+        const demoted = await tx.membership.updateMany({
+          where: { id: owner.id, role: 'OWNER', leftAt: null },
+          data: { role: 'EARNER' },
+        });
+        if (demoted.count === 0) {
+          throw new HttpError(409, 'Ownership has already changed');
+        }
+        await tx.membership.update({ where: { id: target.id }, data: { role: 'OWNER' } });
+        await tx.allowance.deleteMany({ where: { toId: target.id } });
+      });
+      return { ownerId: target.id, formerOwnerRole: 'EARNER' as const };
+    },
   };
 }
 

@@ -38,4 +38,20 @@ describe('member routes', () => {
     expect(ok.json()).toEqual({ membershipId: target.id, role: 'EARNER' });
     expect((await app.inject({ method: 'PATCH', url, headers, payload: { role: 'OWNER' } })).statusCode).toBe(400);
   });
+
+  it('transfers ownership', async () => {
+    const owner = await makeUser(prisma, 'owner');
+    const earner = await makeUser(prisma, 'earner');
+    const household = await makeHousehold(prisma, [
+      { userId: owner.id, role: 'OWNER' },
+      { userId: earner.id, role: 'EARNER' },
+    ]);
+    const target = household.members.find((m) => m.userId === earner.id)!;
+    const headers = { authorization: `Bearer ${await signAccessToken(owner.id)}` };
+    const res = await app.inject({ method: 'POST', url: `/households/${household.id}/members/${target.id}/make-owner`, headers });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ ownerId: target.id, formerOwnerRole: 'EARNER' });
+    const again = await app.inject({ method: 'POST', url: `/households/${household.id}/members/${target.id}/make-owner`, headers });
+    expect(again.statusCode).toBe(403);
+  });
 });
