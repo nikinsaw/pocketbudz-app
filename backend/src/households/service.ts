@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { PrismaClient } from '@prisma/client';
 import { HttpError } from '../errors.js';
 import { requireMembership } from './access.js';
+import { detachMember } from './detach.js';
 
 // Bump when the household-mode agreement text changes; clients must send the
 // version they showed the user, and it is stored with the acceptance time.
@@ -121,16 +122,7 @@ export function createHouseholdService(prisma: PrismaClient) {
           throw new HttpError(409, 'Transfer ownership before leaving');
         }
       }
-      // Allowances are forward-looking money plans, so they end with the membership.
-      await prisma.$transaction([
-        prisma.allowance.deleteMany({
-          where: { OR: [{ fromId: membership.id }, { toId: membership.id }] },
-        }),
-        prisma.membership.update({
-          where: { id: membership.id },
-          data: { leftAt: new Date(), userId: null },
-        }),
-      ]);
+      await detachMember(prisma, membership);
       return { householdDeleted: false };
     },
   };
