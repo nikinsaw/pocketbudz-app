@@ -15,12 +15,14 @@ import settingsReducer from './slices/settingsSlice';
 import budgetReducer from './slices/budgetSlice';
 import transactionsReducer from './slices/transactionsSlice';
 import profileReducer from './slices/profileSlice';
+import householdReducer from './slices/householdSlice';
 
 const rootReducer = combineReducers({
   settings: settingsReducer,
   budget: budgetReducer,
   transactions: transactionsReducer,
   profile: profileReducer,
+  household: householdReducer,
 });
 
 // Bump this whenever a persisted slice's shape changes (renamed/removed

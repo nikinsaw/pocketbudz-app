@@ -23,6 +23,7 @@ import { Provider as StoreProvider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './src/store/store';
 import AppLockGate from './src/Components/AppLock/AppLockGate';
+import HouseholdBootstrap from './src/Components/Household/HouseholdBootstrap';
 import BootSplash from 'react-native-bootsplash';
 
 const Stack = createNativeStackNavigator();
@@ -163,6 +164,7 @@ function App() {
           onBeforeLift={() => BootSplash.hide({ fade: true })}
         >
           <ThemeProvider>
+            <HouseholdBootstrap />
             <AppLockGate>
               <NavigationContainer>
                 <RootNavigator />
