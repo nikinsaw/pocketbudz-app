@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { HttpError } from '../errors.js';
 import { requireMembership } from '../households/access.js';
+import { createHouseholdService } from '../households/service.js';
 
 const rupees = (paise: number) => paise / 100;
 
@@ -68,6 +69,33 @@ export function createAccountService(prisma: PrismaClient) {
 
   return {
     exportHousehold,
+
+    // Erases the account and everything personal. In each household the member
+    // leaves exactly as in leave(): their spending stays only as anonymous totals,
+    // and a household they were alone in is deleted. A sole owner of a household
+    // that still has other members must hand over ownership first, and nothing is
+    // touched until every household has been checked.
+    async deleteAccount(userId: string) {
+      const memberships = await prisma.membership.findMany({ where: { userId, leftAt: null } });
+      for (const m of memberships) {
+        if (m.role !== 'OWNER') continue;
+        const others = await prisma.membership.count({
+          where: { householdId: m.householdId, leftAt: null, id: { not: m.id } },
+        });
+        const otherOwners = await prisma.membership.count({
+          where: { householdId: m.householdId, leftAt: null, role: 'OWNER', id: { not: m.id } },
+        });
+        if (others > 0 && otherOwners === 0) {
+          throw new HttpError(409, 'Transfer ownership of your household before deleting your account');
+        }
+      }
+      const households = createHouseholdService(prisma);
+      for (const m of memberships) {
+        await households.leave(userId, m.householdId);
+      }
+      // Cascades to refresh tokens and agreement records; memberships are already detached.
+      await prisma.user.delete({ where: { id: userId } });
+    },
 
     // The caller's whole account: profile, agreements accepted, and their data
     // from every household they are currently in.
