@@ -74,6 +74,24 @@ export function createHouseholdActions({ api, googleAuth }) {
         return dispatch(syncHousehold());
       },
 
+    // Members of my household: [{ membershipId, role, name, joinedAt }].
+    fetchMembers: () => async (dispatch, getState) => {
+      const current = getState().household.current;
+      if (!current) {
+        return [];
+      }
+      return api.request(`/households/${current.id}/members`);
+    },
+
+    // Owner only (the server enforces it). role: 'EARNER' | 'SPENDER'.
+    // Resolves { code, role, expiresAt }.
+    createInvite:
+      ({ role }) =>
+      async (dispatch, getState) => {
+        const current = getState().household.current;
+        return api.request(`/households/${current.id}/invites`, { method: 'POST', body: { role } });
+      },
+
     leaveHousehold: () => async (dispatch, getState) => {
       const current = getState().household.current;
       if (!current) {

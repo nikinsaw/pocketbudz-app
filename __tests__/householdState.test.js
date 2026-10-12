@@ -188,6 +188,42 @@ describe('household actions', () => {
     expect(store.getState().household.current.role).toBe('SPENDER');
   });
 
+  it('fetchMembers lists the current household’s members', async () => {
+    const members = [{ membershipId: 'm1', role: 'OWNER', name: 'Asha', joinedAt: '2026-10-01' }];
+    const { store, actions } = setup({ responses: { 'GET /households/h1/members': members } });
+    store.dispatch(signedIn(user));
+    store.dispatch(householdSet(home));
+    await expect(store.dispatch(actions.fetchMembers())).resolves.toEqual(members);
+  });
+
+  it('fetchMembers without a household returns nothing and calls nothing', async () => {
+    const { store, api, actions } = setup();
+    await expect(store.dispatch(actions.fetchMembers())).resolves.toEqual([]);
+    expect(api.request).not.toHaveBeenCalled();
+  });
+
+  it('createInvite asks the server for an invite with the chosen role', async () => {
+    const invite = { code: 'abc123XY', role: 'SPENDER', expiresAt: '2026-10-20T00:00:00.000Z' };
+    const { store, calls, actions } = setup({ responses: { 'POST /households/h1/invites': invite } });
+    store.dispatch(signedIn(user));
+    store.dispatch(householdSet(home));
+    await expect(store.dispatch(actions.createInvite({ role: 'SPENDER' }))).resolves.toEqual(invite);
+    expect(calls[0]).toEqual(['POST', '/households/h1/invites', { role: 'SPENDER' }]);
+  });
+
+  it('createInvite surfaces a refusal when the caller is not the owner', async () => {
+    const { store, actions } = setup({
+      responses: {
+        'POST /households/h1/invites': () => {
+          throw apiError(403);
+        },
+      },
+    });
+    store.dispatch(signedIn(user));
+    store.dispatch(householdSet({ ...home, role: 'SPENDER' }));
+    await expect(store.dispatch(actions.createInvite({ role: 'EARNER' }))).rejects.toMatchObject({ status: 403 });
+  });
+
   it('leaveHousehold calls the server for the current household and clears it', async () => {
     const { store, calls, actions } = setup({ responses: { 'POST /households/h1/leave': { householdDeleted: false } } });
     store.dispatch(signedIn(user));
