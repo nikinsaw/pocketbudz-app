@@ -8,6 +8,9 @@ const initialState = {
   // step (see src/storage/appLock.js), so it's set via setAppLockEnabled
   // after that succeeds, not toggled synchronously like the others.
   appLockEnabled: false,
+  // Hides the Home card inviting solo users to try Household Mode. Missing from
+  // older saved state, which reads as "not dismissed".
+  householdPromoDismissed: false,
 };
 
 const settingsSlice = createSlice({
@@ -26,6 +29,9 @@ const settingsSlice = createSlice({
     setAppLockEnabled: (state, action) => {
       state.appLockEnabled = action.payload;
     },
+    dismissHouseholdPromo: (state) => {
+      state.householdPromoDismissed = true;
+    },
   },
 });
 
@@ -34,5 +40,6 @@ export const {
   toggleStreakReminders,
   toggleWeeklySummary,
   setAppLockEnabled,
+  dismissHouseholdPromo,
 } = settingsSlice.actions;
 export default settingsSlice.reducer;

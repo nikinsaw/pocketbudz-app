@@ -18,11 +18,13 @@ import CreateEnvelopeScreen from './src/Screens/CreateEnvelopeScreen';
 import EditIncomeScreen from './src/Screens/EditIncomeScreen';
 import ManageTransactionScreen from './src/Screens/ManageTransactionScreen';
 import ManageCategoriesScreen from './src/Screens/ManageCategoriesScreen';
+import HouseholdScreen from './src/Screens/HouseholdScreen';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { Provider as StoreProvider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './src/store/store';
 import AppLockGate from './src/Components/AppLock/AppLockGate';
+import HouseholdBootstrap from './src/Components/Household/HouseholdBootstrap';
 import BootSplash from 'react-native-bootsplash';
 
 const Stack = createNativeStackNavigator();
@@ -145,6 +147,7 @@ function RootNavigator() {
         component={ManageCategoriesScreen}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen name="Household" component={HouseholdScreen} />
     </Stack.Navigator>
   );
 }
@@ -163,6 +166,7 @@ function App() {
           onBeforeLift={() => BootSplash.hide({ fade: true })}
         >
           <ThemeProvider>
+            <HouseholdBootstrap />
             <AppLockGate>
               <NavigationContainer>
                 <RootNavigator />

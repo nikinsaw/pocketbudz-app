@@ -12,6 +12,7 @@ import {
   setAppLockEnabled,
 } from '../store/slices/settingsSlice';
 import { resetOnboarding } from '../store/slices/profileSlice';
+import { selectHouseholdMode } from '../store/slices/householdSlice';
 import { isBiometricAvailable, enableAppLock, disableAppLock } from '../storage/appLock';
 import { CURRENCY_FORMATS, CYCLE_START_OPTIONS } from '../data/onboardingQuestions';
 import { exportTransactionsToCsv } from '../services/exportTransactions';
@@ -29,6 +30,11 @@ function SettingsScreen() {
   );
   const profile = useSelector((state) => state.profile);
   const transactions = useSelector((state) => state.transactions.items);
+  const householdMode = useSelector(selectHouseholdMode);
+  const householdName = useSelector((state) => state.household.current?.name);
+
+  const householdValue =
+    householdMode === 'household' ? householdName : householdMode === 'signed-in' ? 'Not set up' : 'Off';
 
   const [exportStatus, setExportStatus] = useState('idle'); // idle | exporting
   const [importStatus, setImportStatus] = useState('idle'); // idle | importing
@@ -98,6 +104,16 @@ function SettingsScreen() {
     }
     dispatch(setAppLockEnabled(next));
   };
+
+  const householdRows = [
+    {
+      icon: '👨‍👩‍👧',
+      label: 'Household mode',
+      type: 'nav',
+      value: householdValue,
+      onPress: () => navigation.navigate('Household'),
+    },
+  ];
 
   const preferenceRows = [
     { icon: '🌙', label: 'Dark Mode', type: 'toggle', toggled: isDark, onToggle: setIsDark },
@@ -196,6 +212,7 @@ function SettingsScreen() {
         />
 
         <View style={styles.spacerLarge} />
+        <SettingsSection title="Household" rows={householdRows} />
         <SettingsSection title="Preferences" rows={preferenceRows} />
         <SettingsSection title="Security & Privacy" rows={securityRows} />
         <SettingsSection title="Notifications" rows={notificationRows} />

@@ -10,6 +10,7 @@ import {
   BudgetProgressSection,
   RecentActivitySection,
 } from '../Components/Home';
+import HouseholdCard from '../Components/Household/HouseholdCard';
 import { useTheme } from '../theme/ThemeContext';
 import { getActivityDisplay } from '../utils/transactionDisplay';
 import { computeBudgetSummary } from '../utils/budgetSummary';
@@ -77,6 +78,9 @@ function HomeScreen() {
           amount={guiltFreeToSpend?.amount}
           onPress={() => navigation.navigate('EditIncome')}
         />
+
+        <View style={styles.spacer} />
+        <HouseholdCard />
 
         <View style={styles.spacerLarge} />
         <BudgetProgressSection
