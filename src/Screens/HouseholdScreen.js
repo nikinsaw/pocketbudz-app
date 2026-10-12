@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, StatusBar } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, StatusBar, Alert } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useDispatch, useSelector } from 'react-redux';
 import CustomHeader from '../Components/Common/CustomHeader';
 import HouseholdIntro from '../Components/Household/HouseholdIntro';
 import HouseholdSetup from '../Components/Household/HouseholdSetup';
+import HouseholdStatus from '../Components/Household/HouseholdStatus';
 import { useTheme } from '../theme/ThemeContext';
 import { householdActions } from '../services/householdApp';
 import { selectHouseholdMode } from '../store/slices/householdSlice';
@@ -20,6 +21,7 @@ function HouseholdScreen() {
   const dispatch = useDispatch();
   const mode = useSelector(selectHouseholdMode);
   const user = useSelector((state) => state.household.user);
+  const household = useSelector((state) => state.household.current);
   const hasAccount = user !== null;
 
   const [busy, setBusy] = useState(false);
@@ -53,6 +55,20 @@ function HouseholdScreen() {
 
   const handleSignIn = () => run(householdActions.signIn());
 
+  // Stable identity: HouseholdStatus loads members in an effect keyed on this.
+  const fetchMembers = useCallback(() => dispatch(householdActions.fetchMembers()), [dispatch]);
+  const createInvite = useCallback((input) => dispatch(householdActions.createInvite(input)), [dispatch]);
+
+  const confirmLeave = () =>
+    Alert.alert(
+      'Leave household?',
+      'You’ll stop sharing a budget with this household. Your past spending stays as anonymous totals so everyone else’s numbers stay correct, but its details can no longer be read. Your personal envelopes, income entries and sharing choices are deleted.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Leave', style: 'destructive', onPress: () => run(householdActions.leaveHousehold()) },
+      ],
+    );
+
   return (
     <View style={styles.screen}>
       <StatusBar
@@ -77,6 +93,17 @@ function HouseholdScreen() {
             fetchConsentVersion={householdActions.fetchConsentVersion}
             onCreate={(input) => run(householdActions.createHousehold(input))}
             onJoin={(input) => run(householdActions.joinHousehold(input))}
+            onSignOut={() => run(householdActions.signOut())}
+            busy={busy}
+            error={error}
+          />
+        ) : null}
+        {mode === 'household' ? (
+          <HouseholdStatus
+            household={household}
+            fetchMembers={fetchMembers}
+            createInvite={createInvite}
+            onLeave={confirmLeave}
             onSignOut={() => run(householdActions.signOut())}
             busy={busy}
             error={error}

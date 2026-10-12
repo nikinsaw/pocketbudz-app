@@ -1,8 +1,9 @@
+import { Alert } from 'react-native';
 import HouseholdScreen from '../src/Screens/HouseholdScreen';
 import { householdActions } from '../src/services/householdApp';
 import { AGREEMENT_VERSION } from '../src/data/householdAgreement';
-import { signedIn, signedOut } from '../src/store/slices/householdSlice';
-import { allText, hasText, pressText, renderScreen, typeInto } from '../jest/renderScreen';
+import { householdSet, signedIn, signedOut } from '../src/store/slices/householdSlice';
+import { act, allText, hasText, pressText, renderScreen, typeInto } from '../jest/renderScreen';
 
 jest.mock('../src/services/householdApp', () => ({
   householdActions: {
@@ -12,10 +13,15 @@ jest.mock('../src/services/householdApp', () => ({
     createHousehold: jest.fn(),
     joinHousehold: jest.fn(),
     fetchConsentVersion: jest.fn(),
+    fetchMembers: jest.fn(),
+    createInvite: jest.fn(),
+    leaveHousehold: jest.fn(),
   },
 }));
 
 const user = { id: 'u1', email: 'asha@example.com', name: 'Asha' };
+const home = { id: 'h1', name: 'Sharma family', role: 'OWNER', membershipId: 'm1' };
+const members = [{ membershipId: 'm1', role: 'OWNER', name: 'Asha', joinedAt: '2026-10-01' }];
 const noop = () => () => Promise.resolve();
 
 beforeEach(() => {
@@ -26,6 +32,8 @@ beforeEach(() => {
   householdActions.createHousehold.mockImplementation(noop);
   householdActions.joinHousehold.mockImplementation(noop);
   householdActions.fetchConsentVersion.mockImplementation(() => Promise.resolve(AGREEMENT_VERSION));
+  householdActions.fetchMembers.mockImplementation(() => () => Promise.resolve(members));
+  householdActions.leaveHousehold.mockImplementation(noop);
 });
 
 describe('HouseholdScreen in solo mode', () => {
@@ -139,6 +147,81 @@ describe('HouseholdScreen setup step (signed in, no household)', () => {
     const { root } = await renderScreen(HouseholdScreen, account);
     await pressText(root, 'Not you? Sign out');
     expect(householdActions.signOut).toHaveBeenCalled();
+    expect(hasText(root, 'Continue with Google')).toBe(true);
+  });
+});
+
+describe('HouseholdScreen household step (in a household)', () => {
+  const inHousehold = { household: { user, current: home } };
+
+  // Taps a button of the confirmation dialog the screen opened.
+  const tapDialog = async (label) => {
+    const buttons = Alert.alert.mock.calls[0][2];
+    const button = buttons.find((b) => b.text === label);
+    await act(async () => {
+      await button.onPress();
+    });
+  };
+
+  beforeEach(() => jest.spyOn(Alert, 'alert').mockImplementation(() => {}));
+  afterEach(() => Alert.alert.mockRestore());
+
+  it('shows the household and its members, loading them once', async () => {
+    const { root } = await renderScreen(HouseholdScreen, inHousehold);
+    expect(hasText(root, 'Sharma family')).toBe(true);
+    expect(hasText(root, 'Asha (you)')).toBe(true);
+    expect(householdActions.fetchMembers).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks before leaving and says what happens to their data', async () => {
+    const { root } = await renderScreen(HouseholdScreen, inHousehold);
+    await pressText(root, 'Leave household');
+    expect(Alert.alert).toHaveBeenCalledTimes(1);
+    const [title, message, buttons] = Alert.alert.mock.calls[0];
+    expect(title).toBe('Leave household?');
+    expect(message).toMatch(/anonymous totals/);
+    expect(message).toMatch(/personal envelopes, income entries and sharing choices are deleted/);
+    expect(buttons.find((b) => b.text === 'Leave').style).toBe('destructive');
+    expect(householdActions.leaveHousehold).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when they cancel the dialog', async () => {
+    const { root } = await renderScreen(HouseholdScreen, inHousehold);
+    await pressText(root, 'Leave household');
+    expect(Alert.alert.mock.calls[0][2].find((b) => b.text === 'Cancel').onPress).toBeUndefined();
+    expect(householdActions.leaveHousehold).not.toHaveBeenCalled();
+  });
+
+  it('leaves once confirmed and returns to the create/join step', async () => {
+    householdActions.leaveHousehold.mockImplementation(() => (dispatch) => {
+      dispatch(householdSet(null));
+      return Promise.resolve();
+    });
+    const { root } = await renderScreen(HouseholdScreen, inHousehold);
+    await pressText(root, 'Leave household');
+    await tapDialog('Leave');
+    expect(householdActions.leaveHousehold).toHaveBeenCalledTimes(1);
+    expect(hasText(root, 'Set up your household')).toBe(true);
+  });
+
+  it('shows why leaving was refused and stays in the household', async () => {
+    householdActions.leaveHousehold.mockImplementation(
+      () => () => Promise.reject(Object.assign(new Error('Transfer ownership before leaving'), { status: 409 })),
+    );
+    const { root } = await renderScreen(HouseholdScreen, inHousehold);
+    await pressText(root, 'Leave household');
+    await tapDialog('Leave');
+    expect(hasText(root, 'Transfer ownership before leaving')).toBe(true);
+    expect(hasText(root, 'Sharma family')).toBe(true);
+  });
+
+  it('signs out from the household step', async () => {
+    householdActions.signOut.mockImplementation(() => (dispatch) => {
+      dispatch(signedOut());
+      return Promise.resolve();
+    });
+    const { root } = await renderScreen(HouseholdScreen, inHousehold);
+    await pressText(root, 'Sign out');
     expect(hasText(root, 'Continue with Google')).toBe(true);
   });
 });
