@@ -6,7 +6,9 @@ import { useNavigation } from '@react-navigation/native';
 import CustomHeader from '../Components/Common/CustomHeader';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
-import { setMonthlyIncome } from '../store/slices/profileSlice';
+import { dataActions } from '../services/householdApp';
+import { selectIsHousehold, selectMonthlyIncome } from '../store/selectors';
+import { describeHouseholdError } from '../utils/householdErrors';
 
 function EditIncomeScreen() {
   const { colors } = useTheme();
@@ -14,21 +16,55 @@ function EditIncomeScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
 
-  const currentIncome = useSelector((state) => state.profile.monthlyIncome);
+  const currentIncome = useSelector(selectMonthlyIncome);
+  const isHousehold = useSelector(selectIsHousehold);
+  const role = useSelector((state) => state.household.current?.role);
+  // In a household, spenders have no income: their spending money is the allowance an
+  // earner sets aside for them, so there is nothing to enter here.
+  const isHouseholdSpender = isHousehold && role === 'SPENDER';
 
   const [income, setIncome] = useState(currentIncome ? String(currentIncome) : '');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) {
+      return;
+    }
     setError('');
     const parsed = Number(income.replace(/,/g, ''));
     if (!Number.isFinite(parsed) || parsed <= 0) {
       setError('Enter an income amount greater than zero.');
       return;
     }
-    dispatch(setMonthlyIncome(parsed));
+    setSaving(true);
+    try {
+      await dispatch(dataActions.setMonthlyIncome(parsed));
+    } catch (e) {
+      setError(describeHouseholdError(e, 'Couldn’t save. Please try again.'));
+      setSaving(false);
+      return;
+    }
     navigation.goBack();
   };
+
+  if (isHouseholdSpender) {
+    return (
+      <View style={styles.screen}>
+        <CustomHeader title="Your spending money" leftAction="close" />
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>Set aside by an earner</Text>
+          <Text style={styles.helperText}>
+            In a household, spenders don{'’'}t enter income. An earner sets aside an allowance for
+            you each cycle, and that is what the savings and spending cards work from.
+            {currentIncome
+              ? ` Right now that is ₹${currentIncome.toLocaleString('en-IN')} a month.`
+              : ' Nothing has been set aside for you yet. Ask an earner in your household.'}
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -59,10 +95,17 @@ function EditIncomeScreen() {
           />
         </View>
 
+        {isHousehold ? (
+          <Text style={styles.householdNote}>
+            This is your own income. Only the owner and earners in your household can see household
+            income; spenders can{'’'}t.
+          </Text>
+        ) : null}
+
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <BaseButton onPress={handleSave} style={styles.saveButton}>
-          <Text style={styles.saveButtonLabel}>Save</Text>
+        <BaseButton onPress={handleSave} disabled={saving} style={[styles.saveButton, saving && styles.saveButtonDisabled]}>
+          <Text style={styles.saveButtonLabel}>{saving ? 'Saving…' : 'Save'}</Text>
         </BaseButton>
       </KeyboardAwareScrollView>
     </View>
@@ -90,6 +133,15 @@ const getStyles = (colors) =>
       fontSize: 14,
       lineHeight: 20,
       marginBottom: 24,
+    },
+    householdNote: {
+      color: colors.textMuted,
+      fontSize: 12,
+      lineHeight: 18,
+      marginTop: 12,
+    },
+    saveButtonDisabled: {
+      opacity: 0.6,
     },
     amountInputWrap: {
       flexDirection: 'row',
