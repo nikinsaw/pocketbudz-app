@@ -129,6 +129,20 @@ describe('memoisation', () => {
     expect(selectTransactions(state)).toBe(selectTransactions(state));
   });
 
+  it('selectSync returns the same object until something it reports changes', () => {
+    const solo = makeStore();
+    expect(selectSync(solo.getState())).toBe(selectSync(solo.getState()));
+    solo.dispatch(signedIn(user)); // unrelated change
+    expect(selectSync(solo.getState())).toBe(selectSync(solo.getState()));
+
+    const store = inHousehold();
+    const before = selectSync(store.getState());
+    expect(selectSync(store.getState())).toBe(before);
+    store.dispatch(syncFailed('boom'));
+    expect(selectSync(store.getState())).not.toBe(before);
+    expect(selectSync(store.getState())).toEqual({ status: 'error', error: 'boom' });
+  });
+
   it('recomputes when the server data changes', () => {
     const store = inHousehold();
     const before = selectTransactions(store.getState());

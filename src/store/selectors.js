@@ -41,9 +41,13 @@ export const selectBudgetCycleStartDay = (state) =>
 
 // 'idle' | 'loading' | 'refreshing' | 'ready' | 'error', with the error text. Solo is
 // always 'ready': there is nothing to wait for.
-export const selectSync = (state) =>
-  selectIsHousehold(state)
-    ? { status: state.householdData.status, error: state.householdData.error }
-    : { status: 'ready', error: '' };
+const SOLO_SYNC = { status: 'ready', error: '' };
+
+// Memoised: it returns an object, and a selector that builds a new one every call would
+// re-render every component using it on every store change.
+export const selectSync = createSelector(
+  [selectIsHousehold, (state) => state.householdData.status, (state) => state.householdData.error],
+  (household, status, error) => (household ? { status, error } : SOLO_SYNC),
+);
 
 export const selectMyHouseholdRole = (state) => state.household.current?.role ?? null;
