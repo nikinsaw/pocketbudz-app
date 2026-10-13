@@ -23,7 +23,10 @@ function HouseholdCard() {
   const current = useSelector((state) => state.household.current);
   const promoDismissed = useSelector((state) => state.settings.householdPromoDismissed);
 
-  if (mode === 'solo' && promoDismissed) {
+  // Signing in doesn't mean wanting a household (it is also how AI features are unlocked),
+  // so the invitation can be dismissed until they are actually in one.
+  const dismissable = mode !== 'household';
+  if (dismissable && promoDismissed) {
     return null;
   }
 
@@ -33,8 +36,8 @@ function HouseholdCard() {
       subtitle: 'Share envelopes and see one household budget. Optional, and your data stays on this phone until you choose.',
     },
     'signed-in': {
-      title: 'Finish setting up your household',
-      subtitle: 'Create a household or join one with an invite code.',
+      title: 'Budget together with family',
+      subtitle: 'Create a household or join one with an invite code. Optional.',
     },
     household: {
       title: current?.name ?? 'Your household',
@@ -57,7 +60,7 @@ function HouseholdCard() {
           <Text style={styles.title}>{content.title}</Text>
           <Text style={styles.subtitle}>{content.subtitle}</Text>
         </View>
-        {mode === 'solo' ? (
+        {dismissable ? (
           <BaseButton
             onPress={() => dispatch(dismissHouseholdPromo())}
             hitSlop={12}

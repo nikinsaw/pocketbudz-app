@@ -39,13 +39,31 @@ describe('HouseholdCard', () => {
     expect(allText(root)).toEqual([]);
   });
 
-  it('nudges signed-in users without a household to finish setup, even if the promo was dismissed', async () => {
+  it('offers signed-in users without a household the same optional invitation, which they can dismiss', async () => {
+    const { root, store } = await renderScreen(HouseholdCard, { household: { user, current: null } });
+    expect(hasText(root, 'Create a household or join one with an invite code. Optional.')).toBe(true);
+    expect(hasText(root, '✕')).toBe(true);
+    const dismiss = root.findAll((n) => n.props.accessibilityLabel === 'Dismiss' && n.props.onPress)[0];
+    await require('react-test-renderer').act(async () => dismiss.props.onPress());
+    expect(store.getState().settings.householdPromoDismissed).toBe(true);
+    expect(allText(root)).toEqual([]);
+  });
+
+  it('stays hidden for a signed-in person who dismissed it (e.g. they signed in only for AI)', async () => {
     const { root } = await renderScreen(HouseholdCard, {
       household: { user, current: null },
       settings: { householdPromoDismissed: true },
     });
-    expect(hasText(root, 'Finish setting up your household')).toBe(true);
-    expect(hasText(root, '✕')).toBe(false); // no dismiss once they've started
+    expect(allText(root)).toEqual([]);
+  });
+
+  it('never hides the card once they are in a household, even if an old dismissal exists', async () => {
+    const { root } = await renderScreen(HouseholdCard, {
+      household: { user, current: home },
+      settings: { householdPromoDismissed: true },
+    });
+    expect(hasText(root, 'Sharma family')).toBe(true);
+    expect(hasText(root, '✕')).toBe(false);
   });
 
   it('shows the household and the member’s role once in one, and opens its dashboard', async () => {
@@ -60,7 +78,7 @@ describe('HouseholdCard', () => {
 
   it('sends people who have not finished setup to the Household screen, not an empty dashboard', async () => {
     const { root } = await renderScreen(HouseholdCard, { household: { user, current: null } });
-    await pressText(root, 'Finish setting up your household');
+    await pressText(root, 'Budget together with family');
     expect(mockNavigate).toHaveBeenCalledWith('Household');
   });
 });
