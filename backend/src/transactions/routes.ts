@@ -12,6 +12,8 @@ const fields = z.object({
   amount: z.number().int().positive().max(MAX_PAISE), // paise
   date: isoDate,
 });
+const bulkBody = z.object({ transactions: z.array(fields).min(1).max(500) });
+const mergeBody = fields.extend({ ids: z.array(z.string().min(1)).min(2).max(200) });
 const updateBody = fields.partial().refine((v) => Object.keys(v).length > 0, 'No changes');
 const listQuery = z.object({
   from: isoDate.optional(),
@@ -28,6 +30,17 @@ export function registerTransactionRoutes(app: FastifyInstance, transactions: Tr
     const { id } = householdParams.parse(req.params);
     const body = fields.parse(req.body);
     return reply.code(201).send(await transactions.create(req.userId, id, body));
+  });
+
+  app.post('/households/:id/transactions/bulk', { ...guarded, bodyLimit: 2 * 1024 * 1024 }, async (req, reply) => {
+    const { id } = householdParams.parse(req.params);
+    const { transactions: items } = bulkBody.parse(req.body);
+    return reply.code(201).send(await transactions.createMany(req.userId, id, items));
+  });
+
+  app.post('/households/:id/transactions/merge', guarded, async (req) => {
+    const { id } = householdParams.parse(req.params);
+    return transactions.merge(req.userId, id, mergeBody.parse(req.body));
   });
 
   app.get('/households/:id/transactions', guarded, async (req) => {
