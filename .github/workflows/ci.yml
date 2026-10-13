@@ -54,7 +54,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+
+      # The contract tests run the app's real JavaScript (its API client, store and actions)
+      # against this server, so the app's own dependencies must be installed too.
+      - name: Install app dependencies
+        run: npm ci
+        working-directory: .
 
       - run: npm ci
 
