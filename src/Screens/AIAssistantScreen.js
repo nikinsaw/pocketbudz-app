@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, Alert } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -17,7 +17,8 @@ import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
 import { parseTransactionFromPrompt } from '../services/aiTransactionParser';
 import { parseTransactionsFromFile } from '../services/aiDocumentImport';
-import { addTransaction } from '../store/slices/transactionsSlice';
+import { dataActions } from '../services/householdApp';
+import { describeHouseholdError } from '../utils/householdErrors';
 
 // .flat() because DocumentType.csv is a 2-element array on Android (both
 // "text/csv" and "text/comma-separated-values" mime variants) but a single
@@ -58,7 +59,15 @@ function AIAssistantScreen() {
 
     const result = await parseTransactionFromPrompt(entryText.trim(), categories);
     if (result.success) {
-      dispatch(addTransaction(result.transaction));
+      try {
+        await dispatch(dataActions.addTransaction(result.transaction));
+      } catch (e) {
+        // Parsed fine but couldn't be saved (e.g. offline in a household): keep their
+        // text so they can send it again.
+        setEntryError(describeHouseholdError(e, 'Couldn’t save that. Please try again.'));
+        setEntryStatus('error');
+        return;
+      }
       setAddedTransaction(result.transaction);
       setEntryStatus('success');
       setEntryText('');
@@ -203,11 +212,17 @@ function AIAssistantScreen() {
     });
   };
 
-  const handleConfirmImport = () => {
+  const handleConfirmImport = async () => {
     const selected = importCandidates.filter((candidate) => candidate.selected);
-    selected.forEach(({ selected: _selected, ...transaction }) => {
-      dispatch(addTransaction(transaction));
-    });
+    const transactions = selected.map(({ selected: _selected, ...transaction }) => transaction);
+    try {
+      // One all-or-nothing add in a household, so a failure never leaves half a receipt.
+      await dispatch(dataActions.addTransactions(transactions));
+    } catch (e) {
+      // Stay on the review list with everything still selected, ready to try again.
+      Alert.alert('Couldn’t add these', describeHouseholdError(e));
+      return;
+    }
     setImportedCount(selected.length);
     setImportCandidates([]);
     setImportStatus('success');

@@ -17,7 +17,9 @@ import { isBiometricAvailable, enableAppLock, disableAppLock } from '../storage/
 import { CURRENCY_FORMATS, CYCLE_START_OPTIONS } from '../data/onboardingQuestions';
 import { exportTransactionsToCsv } from '../services/exportTransactions';
 import { importTransactionsFromFile } from '../services/importTransactions';
-import { addTransaction } from '../store/slices/transactionsSlice';
+import { dataActions } from '../services/householdApp';
+import { selectTransactions } from '../store/selectors';
+import { describeHouseholdError } from '../utils/householdErrors';
 
 function SettingsScreen() {
   const { colors, isDark, setIsDark } = useTheme();
@@ -29,7 +31,7 @@ function SettingsScreen() {
     (state) => state.settings,
   );
   const profile = useSelector((state) => state.profile);
-  const transactions = useSelector((state) => state.transactions.items);
+  const transactions = useSelector(selectTransactions);
   const householdMode = useSelector(selectHouseholdMode);
   const householdName = useSelector((state) => state.household.current?.name);
 
@@ -79,7 +81,13 @@ function SettingsScreen() {
       return;
     }
 
-    result.transactions.forEach((transaction) => dispatch(addTransaction(transaction)));
+    try {
+      // In a household this is one all-or-nothing request, so a failed import adds nothing.
+      await dispatch(dataActions.addTransactions(result.transactions));
+    } catch (e) {
+      Alert.alert('Couldn’t import', describeHouseholdError(e));
+      return;
+    }
 
     const skippedNote = result.skipped > 0 ? ` (${result.skipped} row${result.skipped === 1 ? '' : 's'} skipped)` : '';
     Alert.alert(

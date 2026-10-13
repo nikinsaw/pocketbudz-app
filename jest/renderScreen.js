@@ -119,6 +119,22 @@ export async function pressText(root, text) {
   });
 }
 
+// Like pressText, but only matches a label that is exactly `text` - for short labels such as
+// "Add" that are also part of longer ones ("Add Transaction", "Add from camera").
+export async function pressExactText(root, text) {
+  const labels = root.findAll((node) => node.type === 'Text' && flatten(node.props.children) === text);
+  const node = labels.map(pressableAncestor).find(Boolean);
+  if (!node) {
+    throw new Error(`No pressable with exactly the label "${text}"`);
+  }
+  if (node.props.disabled === true) {
+    return;
+  }
+  await ReactTestRenderer.act(async () => {
+    node.props.onPress();
+  });
+}
+
 export const act = ReactTestRenderer.act;
 
 // Types into the TextInput with this placeholder.
