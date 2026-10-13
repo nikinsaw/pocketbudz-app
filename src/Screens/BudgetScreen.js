@@ -3,6 +3,14 @@ import { View, StyleSheet, ScrollView, StatusBar } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { HomeHeader } from '../Components/Home';
+import SyncBanner from '../Components/Household/SyncBanner';
+import { useHouseholdRefresh } from '../Components/Household/useHouseholdRefresh';
+import {
+  selectBudgetCycleStartDay,
+  selectEnvelopes,
+  selectMonthlyIncome,
+  selectTransactions,
+} from '../store/selectors';
 import { SafeToSpendCard, EnvelopesSection } from '../Components/Budget';
 import { useTheme } from '../theme/ThemeContext';
 import { computeBudgetSummary } from '../utils/budgetSummary';
@@ -13,10 +21,11 @@ function BudgetScreen() {
   const styles = getStyles(colors);
   const navigation = useNavigation();
 
-  const envelopes = useSelector((state) => state.budget.envelopes);
-  const transactions = useSelector((state) => state.transactions.items);
-  const monthlyIncome = useSelector((state) => state.profile.monthlyIncome);
-  const budgetCycleStartDay = useSelector((state) => state.profile.budgetCycleStartDay);
+  const envelopes = useSelector(selectEnvelopes);
+  const transactions = useSelector(selectTransactions);
+  const monthlyIncome = useSelector(selectMonthlyIncome);
+  const budgetCycleStartDay = useSelector(selectBudgetCycleStartDay);
+  const refreshControl = useHouseholdRefresh();
 
   const { safeToSpend } = computeBudgetSummary({
     envelopes,
@@ -40,7 +49,9 @@ function BudgetScreen() {
         style={styles.body}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl}
       >
+        <SyncBanner />
         <SafeToSpendCard
           amount={safeToSpend?.amount}
           total={safeToSpend?.total}

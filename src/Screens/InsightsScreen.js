@@ -12,16 +12,25 @@ import {
 import BaseCard from '../Components/Common/BaseCard';
 import { useTheme } from '../theme/ThemeContext';
 import { computeInsights } from '../utils/insightsSummary';
+import SyncBanner from '../Components/Household/SyncBanner';
+import { useHouseholdRefresh } from '../Components/Household/useHouseholdRefresh';
+import {
+  selectBudgetCycleStartDay,
+  selectEnvelopes,
+  selectMonthlyIncome,
+  selectTransactions,
+} from '../store/selectors';
 
 function InsightsScreen() {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
   const navigation = useNavigation();
 
-  const envelopes = useSelector((state) => state.budget.envelopes);
-  const transactions = useSelector((state) => state.transactions.items);
-  const monthlyIncome = useSelector((state) => state.profile.monthlyIncome);
-  const budgetCycleStartDay = useSelector((state) => state.profile.budgetCycleStartDay);
+  const envelopes = useSelector(selectEnvelopes);
+  const transactions = useSelector(selectTransactions);
+  const monthlyIncome = useSelector(selectMonthlyIncome);
+  const budgetCycleStartDay = useSelector(selectBudgetCycleStartDay);
+  const refreshControl = useHouseholdRefresh();
 
   const { categorySpend, savingsGrowth, totalSaved, positivePatterns } = computeInsights({
     envelopes,
@@ -48,7 +57,9 @@ function InsightsScreen() {
         style={styles.body}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl}
       >
+        <SyncBanner />
         <Text style={styles.title}>Savings Growth</Text>
 
         {monthlyIncome ? (
