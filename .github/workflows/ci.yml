@@ -104,11 +104,10 @@ jobs:
 
       # Debug builds don't bundle JS (Metro serves it at runtime), so this
       # never actually gets read — it just guards against that assumption
-      # changing later and the build failing on a missing GEMINI_API_KEY.
+      # changing later and the build failing on a missing value.
       - name: Write placeholder .env
         run: |
           {
-            echo "GEMINI_API_KEY=ci-placeholder"
             echo "GOOGLE_WEB_CLIENT_ID=ci-placeholder.apps.googleusercontent.com"
             echo "API_BASE_URL=http://10.0.2.2:3000"
           } > .env

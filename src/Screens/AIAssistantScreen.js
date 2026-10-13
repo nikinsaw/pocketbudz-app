@@ -18,6 +18,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { parseTransactionFromPrompt } from '../services/aiTransactionParser';
 import { parseTransactionsFromFile } from '../services/aiDocumentImport';
 import { dataActions } from '../services/householdApp';
+import AiSignInCard from '../Components/Household/AiSignInCard';
 import { describeHouseholdError } from '../utils/householdErrors';
 
 // .flat() because DocumentType.csv is a 2-element array on Android (both
@@ -245,6 +246,7 @@ function AIAssistantScreen() {
         enableOnAndroid
         extraScrollHeight={20}
       >
+        <AiSignInCard />
         <Text style={styles.sectionTitle}>Quick add via text</Text>
           <BaseCard style={styles.card}>
             <TextInput

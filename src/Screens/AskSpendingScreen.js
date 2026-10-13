@@ -8,6 +8,7 @@ import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
 import { getSpendingInsight } from '../services/aiInsights';
 import { selectEnvelopes, selectTransactions } from '../store/selectors';
+import AiSignInCard from '../Components/Household/AiSignInCard';
 
 function AskSpendingScreen() {
   const { colors } = useTheme();
@@ -49,6 +50,7 @@ function AskSpendingScreen() {
         enableOnAndroid
         extraScrollHeight={20}
       >
+        <AiSignInCard />
         <BaseCard style={styles.card}>
           <TextInput
             value={question}

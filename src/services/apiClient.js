@@ -7,11 +7,14 @@
 // the network is down must NOT sign the user out - only an explicit rejection does.
 
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, data = null) {
     super(message);
     this.name = 'ApiError';
     // 0 means the server could not be reached at all.
     this.status = status;
+    // The server's whole error body, e.g. { error, reason } - `reason` lets callers react to
+    // *why* a request failed (a daily limit, a missing config) and not just its status.
+    this.data = data;
   }
 }
 
@@ -41,9 +44,11 @@ export function createApiClient({
     }
   }
 
-  async function send(path, { method = 'GET', body, token } = {}) {
+  // `timeoutMs` per request overrides the client's default, for the few calls that are
+  // legitimately slow (an AI answer can take a minute).
+  async function send(path, { method = 'GET', body, token, timeoutMs: requestTimeoutMs } = {}) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), requestTimeoutMs ?? timeoutMs);
     try {
       const response = await fetchImpl(`${baseUrl}${path}`, {
         method,
@@ -127,7 +132,7 @@ export function createApiClient({
     }
 
     if (!result.ok) {
-      throw new ApiError(result.status, result.data?.error ?? 'Something went wrong');
+      throw new ApiError(result.status, result.data?.error ?? 'Something went wrong', result.data);
     }
     return result.data;
   }

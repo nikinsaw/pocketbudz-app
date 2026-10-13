@@ -49,12 +49,28 @@ jobs:
           key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
-      # Unlike the debug build in ci.yml, a release build actually bundles
-      # the JS — this key ships inside the AAB users install.
+      # Unlike the debug build in ci.yml, a release build actually bundles the JS, so these
+      # two values ship inside the AAB users install. Neither is a secret (a server address
+      # and a public Google client ID) - set them under Settings > Secrets and variables >
+      # Actions > Variables. There is deliberately no Gemini key: AI goes through the
+      # backend, which holds it.
       - name: Write .env
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          if [[ ! "$API_BASE_URL" =~ ^https:// ]]; then
+            echo "::error::Repository variable API_BASE_URL must be set to your deployed backend's https:// address. Without it AI and household features cannot work in this release, and Android blocks plain http:// in release builds."
+            exit 1
+          fi
+          if [[ -z "$GOOGLE_WEB_CLIENT_ID" ]]; then
+            echo "::error::Repository variable GOOGLE_WEB_CLIENT_ID must be set (the Google web client ID used for sign-in)."
+            exit 1
+          fi
+          {
+            echo "API_BASE_URL=$API_BASE_URL"
+            echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID"
+          } > .env
 
       # Stripped of all whitespace first: a base64 secret pasted via a
       # browser (or copied from a Windows terminal/clipboard) can pick up

@@ -37,6 +37,19 @@ model User {
   memberships   Membership[]
   consents      ConsentRecord[]
   refreshTokens RefreshToken[]
+  aiUsage       AiUsage[]
+}
+
+// How many AI requests a user has made on a given day, to enforce the daily limit that
+// protects the Gemini key. One row per user per day; removed with the account.
+model AiUsage {
+  userId String
+  day    DateTime @db.Date
+  count  Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
 }
 
 model RefreshToken {

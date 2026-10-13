@@ -71,6 +71,20 @@ describe('request', () => {
     expect([error.status, error.message]).toEqual([409, 'Already in a household']);
   });
 
+  it('keeps the server’s whole error body, including its machine-readable reason', async () => {
+    const { api } = setup({ responses: { '/x': () => reply(429, { error: 'Used up for today', reason: 'daily-limit' }) } });
+    const error = await api.request('/x').catch((e) => e);
+    expect(error.data).toEqual({ error: 'Used up for today', reason: 'daily-limit' });
+    expect(error.message).toBe('Used up for today');
+  });
+
+  it('has no body data when the failure never reached the server or had no body', async () => {
+    const offline = setup({ responses: { '/x': () => { throw new TypeError('offline'); } } });
+    expect((await offline.api.request('/x').catch((e) => e)).data).toBeNull();
+    const signedOut = setup({ session: null });
+    expect((await signedOut.api.request('/x').catch((e) => e)).data).toBeNull();
+  });
+
   it('reports an unreachable server as status 0', async () => {
     const { api } = setup({
       responses: {
@@ -80,6 +94,25 @@ describe('request', () => {
       },
     });
     await expect(api.request('/x')).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('lets one slow call opt into a longer wait than the default', async () => {
+    const { api } = setup({
+      responses: {
+        // Like a real network call: answers after 120 ms, but stops if the client gives up first.
+        '/slow-but-fine': ({ init }) =>
+          new Promise((resolve, reject) => {
+            const answer = setTimeout(() => resolve(reply(200, { ok: true })), 120);
+            init.signal.addEventListener('abort', () => {
+              clearTimeout(answer);
+              reject(new Error('aborted'));
+            });
+          }),
+      },
+    });
+    // The client default is 50 ms (see setup), so without the override this would abort.
+    await expect(api.request('/slow-but-fine', { timeoutMs: 1000 })).resolves.toEqual({ ok: true });
+    await expect(api.request('/slow-but-fine')).rejects.toMatchObject({ status: 0 });
   });
 
   it('aborts slow requests', async () => {
