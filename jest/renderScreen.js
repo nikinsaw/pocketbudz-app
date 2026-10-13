@@ -6,6 +6,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '../src/theme/ThemeContext';
 import householdReducer from '../src/store/slices/householdSlice';
+import householdDataReducer from '../src/store/slices/householdDataSlice';
 import settingsReducer from '../src/store/slices/settingsSlice';
 import budgetReducer from '../src/store/slices/budgetSlice';
 import transactionsReducer from '../src/store/slices/transactionsSlice';
@@ -15,10 +16,13 @@ import profileReducer from '../src/store/slices/profileSlice';
 // safe area). `household` seeds the household slice: { user, current };
 // `settings` seeds settings overrides, e.g. { householdPromoDismissed: true };
 // `phone` seeds the on-device data: { envelopes, transactions, monthlyIncome }.
-export async function renderScreen(Screen, { household, settings, phone } = {}) {
+// `profile` overrides profile fields (e.g. { categories }); `householdData` pre-loads the
+// server data for household mode: { envelopes, transactions, ... } in server shapes.
+export async function renderScreen(Screen, { household, settings, phone, profile, householdData } = {}) {
   const store = configureStore({
     reducer: {
       household: householdReducer,
+      householdData: householdDataReducer,
       settings: settingsReducer,
       budget: budgetReducer,
       transactions: transactionsReducer,
@@ -30,8 +34,19 @@ export async function renderScreen(Screen, { household, settings, phone } = {}) 
         ? {
             budget: { envelopes: phone.envelopes ?? [] },
             transactions: { items: phone.transactions ?? [] },
-            profile: { ...profileReducer(undefined, { type: '@@init' }), monthlyIncome: phone.monthlyIncome ?? null },
           }
+        : {}),
+      ...(phone || profile
+        ? {
+            profile: {
+              ...profileReducer(undefined, { type: '@@init' }),
+              ...(phone ? { monthlyIncome: phone.monthlyIncome ?? null } : {}),
+              ...(profile ?? {}),
+            },
+          }
+        : {}),
+      ...(householdData
+        ? { householdData: { ...householdDataReducer(undefined, { type: '@@init' }), status: 'ready', ...householdData } }
         : {}),
       ...(settings ? { settings: { ...settingsReducer(undefined, { type: '@@init' }), ...settings } } : {}),
     },
@@ -71,18 +86,24 @@ export function allText(root) {
 
 export const hasText = (root, text) => allText(root).some((t) => t.includes(text));
 
-// Presses the nearest pressable ancestor of the first Text containing `text`.
-export async function pressText(root, text) {
-  const label = root.findAll(
-    (node) => node.type === 'Text' && flatten(node.props.children).includes(text),
-  )[0];
-  if (!label) {
-    throw new Error(`No text containing "${text}" on screen. Saw: ${allText(root).join(' | ')}`);
-  }
+const pressableAncestor = (label) => {
   let node = label;
   while (node && !(typeof node.props.onPress === 'function')) {
     node = node.parent;
   }
+  return node;
+};
+
+// Taps the first Text containing `text` that sits inside something pressable - so a
+// header that happens to repeat a button's label is skipped, as a finger would skip it.
+export async function pressText(root, text) {
+  const labels = root.findAll(
+    (node) => node.type === 'Text' && flatten(node.props.children).includes(text),
+  );
+  if (labels.length === 0) {
+    throw new Error(`No text containing "${text}" on screen. Saw: ${allText(root).join(' | ')}`);
+  }
+  const node = labels.map(pressableAncestor).find(Boolean);
   if (!node) {
     throw new Error(`"${text}" is not inside anything pressable`);
   }
@@ -91,8 +112,26 @@ export async function pressText(root, text) {
   if (node.props.disabled === true) {
     return;
   }
+  // Like a finger, fire the handler and move on: don't wait for whatever it starts. (act
+  // still flushes the state updates and resolved promises it triggers.)
   await ReactTestRenderer.act(async () => {
-    await node.props.onPress();
+    node.props.onPress();
+  });
+}
+
+// Like pressText, but only matches a label that is exactly `text` - for short labels such as
+// "Add" that are also part of longer ones ("Add Transaction", "Add from camera").
+export async function pressExactText(root, text) {
+  const labels = root.findAll((node) => node.type === 'Text' && flatten(node.props.children) === text);
+  const node = labels.map(pressableAncestor).find(Boolean);
+  if (!node) {
+    throw new Error(`No pressable with exactly the label "${text}"`);
+  }
+  if (node.props.disabled === true) {
+    return;
+  }
+  await ReactTestRenderer.act(async () => {
+    node.props.onPress();
   });
 }
 

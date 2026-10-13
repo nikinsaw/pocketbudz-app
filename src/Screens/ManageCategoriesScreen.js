@@ -5,6 +5,7 @@ import CustomHeader from '../Components/Common/CustomHeader';
 import BaseCard from '../Components/Common/BaseCard';
 import { useTheme } from '../theme/ThemeContext';
 import { deleteCategory } from '../store/slices/profileSlice';
+import { selectEnvelopes, selectTransactions } from '../store/selectors';
 
 function ManageCategoriesScreen() {
   const { colors } = useTheme();
@@ -12,8 +13,8 @@ function ManageCategoriesScreen() {
   const dispatch = useDispatch();
 
   const categories = useSelector((state) => state.profile.categories);
-  const envelopes = useSelector((state) => state.budget.envelopes);
-  const transactions = useSelector((state) => state.transactions.items);
+  const envelopes = useSelector(selectEnvelopes);
+  const transactions = useSelector(selectTransactions);
 
   const handleDelete = (category) => {
     const envelopeCount = envelopes.filter((envelope) => envelope.categoryKey === category.key)

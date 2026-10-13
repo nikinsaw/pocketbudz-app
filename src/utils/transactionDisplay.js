@@ -7,10 +7,15 @@ import { formatRelativeDate } from './formatDate';
 // resolves to a `${colorKey}Tint` theme token (theme/palettes.js) — the same
 // colorKey a transaction's category/envelope uses for its solid color.
 export function getActivityDisplay(transaction, colors) {
+  // In a household, spending by someone else says who ("Yesterday · Ravi"). Solo
+  // transactions have no `mine`/`memberName`, so they read exactly as before.
+  const byOther = transaction.mine === false && transaction.memberName;
   return {
     id: transaction.id,
     name: transaction.merchant,
-    subtitle: formatRelativeDate(transaction.date),
+    subtitle: byOther
+      ? `${formatRelativeDate(transaction.date)} · ${transaction.memberName}`
+      : formatRelativeDate(transaction.date),
     amount: transaction.amount.toLocaleString('en-IN'),
     icon: transaction.icon,
     iconBackground: colors[`${transaction.colorKey}Tint`] || colors.pillBg,

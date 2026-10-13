@@ -11,6 +11,14 @@ import {
   RecentActivitySection,
 } from '../Components/Home';
 import HouseholdCard from '../Components/Household/HouseholdCard';
+import SyncBanner from '../Components/Household/SyncBanner';
+import { useHouseholdRefresh } from '../Components/Household/useHouseholdRefresh';
+import {
+  selectBudgetCycleStartDay,
+  selectEnvelopes,
+  selectMonthlyIncome,
+  selectTransactions,
+} from '../store/selectors';
 import { useTheme } from '../theme/ThemeContext';
 import { getActivityDisplay } from '../utils/transactionDisplay';
 import { computeBudgetSummary } from '../utils/budgetSummary';
@@ -24,10 +32,11 @@ function HomeScreen() {
   const styles = getStyles(colors);
   const navigation = useNavigation();
 
-  const envelopes = useSelector((state) => state.budget.envelopes);
-  const transactions = useSelector((state) => state.transactions.items);
-  const monthlyIncome = useSelector((state) => state.profile.monthlyIncome);
-  const budgetCycleStartDay = useSelector((state) => state.profile.budgetCycleStartDay);
+  const envelopes = useSelector(selectEnvelopes);
+  const transactions = useSelector(selectTransactions);
+  const monthlyIncome = useSelector(selectMonthlyIncome);
+  const budgetCycleStartDay = useSelector(selectBudgetCycleStartDay);
+  const refreshControl = useHouseholdRefresh();
 
   const { savedThisMonth, guiltFreeToSpend } = computeBudgetSummary({
     envelopes,
@@ -66,7 +75,9 @@ function HomeScreen() {
         style={styles.body}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl}
       >
+        <SyncBanner />
         <SavedThisMonthCard
           amount={savedThisMonth?.amount}
           progress={savedThisMonth?.progress}

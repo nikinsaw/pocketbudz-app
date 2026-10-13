@@ -7,13 +7,14 @@ import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
 import { getSpendingInsight } from '../services/aiInsights';
+import { selectEnvelopes, selectTransactions } from '../store/selectors';
 
 function AskSpendingScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
 
-  const transactions = useSelector((state) => state.transactions.items);
-  const envelopes = useSelector((state) => state.budget.envelopes);
+  const transactions = useSelector(selectTransactions);
+  const envelopes = useSelector(selectEnvelopes);
 
   const [question, setQuestion] = useState('');
   const [askStatus, setAskStatus] = useState('idle'); // idle | loading | error

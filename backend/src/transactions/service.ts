@@ -1,7 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import type { Membership, PrismaClient } from '@prisma/client';
 import { HttpError } from '../errors.js';
 import { requireMembership } from '../households/access.js';
-import { clearVisibility, stampVisibility } from '../visibility/stamp.js';
+import { clearVisibility, stampMany, stampVisibility } from '../visibility/stamp.js';
 
 export interface TransactionFields {
   envelopeId: string | null;
@@ -99,6 +100,97 @@ export function createTransactionService(prisma: PrismaClient) {
         return row;
       });
       return present(created, membership);
+    },
+
+    // Adds many transactions at once (CSV import, a scanned statement): all of them or none.
+    async createMany(userId: string, householdId: string, inputs: TransactionFields[]) {
+      const membership = await requireMembership(prisma, userId, householdId);
+      const envelopeIds = [...new Set(inputs.flatMap((i) => (i.envelopeId ? [i.envelopeId] : [])))];
+      const found = await prisma.envelope.findMany({ where: { id: { in: envelopeIds }, householdId } });
+      const envelopeById = new Map(found.map((e) => [e.id, e]));
+      for (const id of envelopeIds) {
+        const envelope = envelopeById.get(id);
+        if (!envelope || (envelope.scope === 'PERSONAL' && envelope.ownerId !== membership.id)) {
+          throw new HttpError(404, 'Envelope not found');
+        }
+      }
+      const rows = inputs.map((input) => ({
+        id: randomUUID(),
+        householdId,
+        memberId: membership.id,
+        envelopeId: input.envelopeId,
+        merchant: input.merchant,
+        category: input.category,
+        amount: input.amount,
+        date: parseDate(input.date),
+      }));
+      await prisma.$transaction(
+        async (tx) => {
+          await tx.transaction.createMany({ data: rows });
+          const privateIds = rows
+            .filter((row) => isPrivate(row.envelopeId ? envelopeById.get(row.envelopeId)! : null))
+            .map((row) => row.id);
+          await stampMany(tx, privateIds, membership);
+        },
+        { timeout: 30_000 },
+      );
+      const created = await prisma.transaction.findMany({
+        where: { id: { in: rows.map((r) => r.id) } },
+        include,
+        orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      });
+      return created.map((row) => present(row, membership));
+    },
+
+    // Replaces several of the caller's own transactions with one - atomically, so a failure
+    // can never leave the originals half-deleted or the amounts counted twice.
+    async merge(userId: string, householdId: string, input: TransactionFields & { ids: string[] }) {
+      const membership = await requireMembership(prisma, userId, householdId);
+      const ids = [...new Set(input.ids)];
+      const originals = await prisma.transaction.findMany({
+        where: { id: { in: ids }, householdId },
+        include: {
+          envelope: true,
+          visibility: { where: { viewerId: membership.id, level: 'FULL' } },
+        },
+      });
+      const visible = originals.filter(
+        (o) => o.memberId === membership.id || o.envelope?.scope === 'SHARED' || o.visibility.length > 0,
+      );
+      if (visible.length !== ids.length) {
+        throw new HttpError(404, 'Transaction not found');
+      }
+      if (visible.some((o) => o.memberId !== membership.id)) {
+        throw new HttpError(403, 'You can only merge spending you added');
+      }
+      const envelope = input.envelopeId
+        ? await assertEnvelopeUsable(householdId, input.envelopeId, membership)
+        : null;
+
+      const merged = await prisma.$transaction(async (tx) => {
+        const deleted = await tx.transaction.deleteMany({ where: { id: { in: ids }, memberId: membership.id } });
+        if (deleted.count !== ids.length) {
+          // Something changed since we looked; the throw rolls everything back.
+          throw new HttpError(409, 'These changed while merging. Please try again.');
+        }
+        const row = await tx.transaction.create({
+          data: {
+            householdId,
+            memberId: membership.id,
+            envelopeId: input.envelopeId,
+            merchant: input.merchant,
+            category: input.category,
+            amount: input.amount,
+            date: parseDate(input.date),
+          },
+          include,
+        });
+        if (isPrivate(envelope)) {
+          await stampVisibility(tx, row.id, membership);
+        }
+        return row;
+      });
+      return present(merged, membership);
     },
 
     // What this member may see: their own spending, everything in shared envelopes,

@@ -20,6 +20,25 @@ export async function stampVisibility(
   }
 }
 
+// Same as stampVisibility for a batch of brand-new transactions: the owner's settings are
+// read once rather than once per transaction.
+export async function stampMany(
+  db: Db,
+  transactionIds: string[],
+  owner: { id: string; householdId: string },
+) {
+  if (transactionIds.length === 0) {
+    return;
+  }
+  const levels = (await levelsForOwner(db, owner)).filter((entry) => entry.level !== 'NONE');
+  const rows = transactionIds.flatMap((transactionId) =>
+    levels.map((entry) => ({ transactionId, viewerId: entry.viewerId, level: entry.level })),
+  );
+  if (rows.length > 0) {
+    await db.transactionVisibility.createMany({ data: rows });
+  }
+}
+
 export function clearVisibility(db: Db, transactionId: string) {
   return db.transactionVisibility.deleteMany({ where: { transactionId } });
 }
