@@ -96,6 +96,25 @@ describe('request', () => {
     await expect(api.request('/x')).rejects.toMatchObject({ status: 0 });
   });
 
+  it('lets one slow call opt into a longer wait than the default', async () => {
+    const { api } = setup({
+      responses: {
+        // Like a real network call: answers after 120 ms, but stops if the client gives up first.
+        '/slow-but-fine': ({ init }) =>
+          new Promise((resolve, reject) => {
+            const answer = setTimeout(() => resolve(reply(200, { ok: true })), 120);
+            init.signal.addEventListener('abort', () => {
+              clearTimeout(answer);
+              reject(new Error('aborted'));
+            });
+          }),
+      },
+    });
+    // The client default is 50 ms (see setup), so without the override this would abort.
+    await expect(api.request('/slow-but-fine', { timeoutMs: 1000 })).resolves.toEqual({ ok: true });
+    await expect(api.request('/slow-but-fine')).rejects.toMatchObject({ status: 0 });
+  });
+
   it('aborts slow requests', async () => {
     const { api } = setup({
       responses: {

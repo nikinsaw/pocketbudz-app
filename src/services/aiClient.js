@@ -42,12 +42,18 @@ function toUnavailable(error) {
 // `api` is the app's API client. Callers pass either a bare `prompt` for a free-text answer,
 // or add `responseSchema` to force structured JSON; `file` ({ mimeType, base64 }) is an image
 // or PDF to read. Resolves with the answer text.
+// Gemini can take a long time (a real call took ~50 s when Google was busy). The server gives
+// up on Google after 60 s, so the phone waits a little longer than that - it must hear the
+// server's verdict, not abort first and leave the person charged for an answer they never got.
+export const AI_REQUEST_TIMEOUT_MS = 75000;
+
 export function createCallGemini(api) {
   return async function callGemini({ prompt, systemInstruction, responseSchema, file }) {
     try {
       const { text } = await api.request('/ai/generate', {
         method: 'POST',
         body: { prompt, systemInstruction, responseSchema, file },
+        timeoutMs: AI_REQUEST_TIMEOUT_MS,
       });
       return text;
     } catch (error) {

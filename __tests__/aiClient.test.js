@@ -1,5 +1,5 @@
 import { ApiError } from '../src/services/apiClient';
-import { AIUnavailableError, createCallGemini, describeAIError } from '../src/services/aiClient';
+import { AIUnavailableError, AI_REQUEST_TIMEOUT_MS, createCallGemini, describeAIError } from '../src/services/aiClient';
 
 const fakeApi = (impl) => ({ request: jest.fn(impl) });
 const failWith = (status, message = 'x', data = null) => () => Promise.reject(new ApiError(status, message, data));
@@ -9,7 +9,7 @@ describe('callGemini (through the PocketBudz server)', () => {
     const api = fakeApi(async () => ({ text: 'The answer', usage: { used: 1, limit: 100 } }));
     const answer = await createCallGemini(api)({ prompt: 'hello' });
     expect(answer).toBe('The answer');
-    expect(api.request).toHaveBeenCalledWith('/ai/generate', { method: 'POST', body: { prompt: 'hello' } });
+    expect(api.request).toHaveBeenCalledWith('/ai/generate', { method: 'POST', body: { prompt: 'hello' }, timeoutMs: AI_REQUEST_TIMEOUT_MS });
   });
 
   it('forwards the system instruction, schema and file exactly as before', async () => {

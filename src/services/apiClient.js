@@ -44,9 +44,11 @@ export function createApiClient({
     }
   }
 
-  async function send(path, { method = 'GET', body, token } = {}) {
+  // `timeoutMs` per request overrides the client's default, for the few calls that are
+  // legitimately slow (an AI answer can take a minute).
+  async function send(path, { method = 'GET', body, token, timeoutMs: requestTimeoutMs } = {}) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), requestTimeoutMs ?? timeoutMs);
     try {
       const response = await fetchImpl(`${baseUrl}${path}`, {
         method,
