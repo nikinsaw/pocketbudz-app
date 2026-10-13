@@ -7,8 +7,16 @@ import CustomHeader from '../Components/Common/CustomHeader';
 import BaseCard from '../Components/Common/BaseCard';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
-import { addEnvelope, updateEnvelope, deleteEnvelope } from '../store/slices/budgetSlice';
 import { addCategory } from '../store/slices/profileSlice';
+import { dataActions } from '../services/householdApp';
+import { selectEnvelopes, selectIsHousehold } from '../store/selectors';
+import { describeHouseholdError } from '../utils/householdErrors';
+
+// Household only: who a new envelope is for. Spenders can only make personal ones.
+const SCOPES = [
+  { key: 'PERSONAL', label: 'Just me', description: 'Only you see this budget and what you spend from it.' },
+  { key: 'SHARED', label: 'The household', description: 'Everyone in the household sees this budget and all spending in it.' },
+];
 
 // Rotated through for custom categories a user adds inline, since asking
 // for a color pick on top of everything else here would be a lot of UI for
@@ -43,13 +51,25 @@ function CreateEnvelopeScreen() {
   const route = useRoute();
 
   const categories = useSelector((state) => state.profile.categories);
-  const envelopes = useSelector((state) => state.budget.envelopes);
+  const envelopes = useSelector(selectEnvelopes);
+  const isHousehold = useSelector(selectIsHousehold);
+  const household = useSelector((state) => state.household.current);
 
   const envelopeId = route.params?.envelopeId;
   const editingEnvelope = envelopeId
     ? envelopes.find((envelope) => envelope.id === envelopeId)
     : null;
   const isEditing = !!editingEnvelope;
+
+  // Household rules: shared budgets are managed by owners and earners, personal ones only
+  // by their owner. Anyone else (e.g. a personal budget someone shared with you in full)
+  // gets a read-only view.
+  const isSpender = household?.role === 'SPENDER';
+  const readOnly =
+    isHousehold &&
+    isEditing &&
+    (editingEnvelope.shared ? isSpender : editingEnvelope.ownerId !== household?.membershipId);
+  const [scope, setScope] = useState('PERSONAL');
 
   const [selectedCategoryKey, setSelectedCategoryKey] = useState(
     editingEnvelope?.categoryKey ?? null,
@@ -61,6 +81,7 @@ function CreateEnvelopeScreen() {
     editingEnvelope ? String(editingEnvelope.budgetLimit) : '',
   );
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const selectedCategory = categories.find((category) => category.key === selectedCategoryKey);
 
@@ -79,7 +100,10 @@ function CreateEnvelopeScreen() {
     setIsAddingCategory(false);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (saving) {
+      return;
+    }
     setError('');
 
     if (!selectedCategory) {
@@ -101,22 +125,40 @@ function CreateEnvelopeScreen() {
       budgetLimit: parsedLimit,
     };
 
-    if (isEditing) {
-      dispatch(updateEnvelope({ id: editingEnvelope.id, ...payload }));
-    } else {
-      dispatch(addEnvelope(payload));
+    setSaving(true);
+    try {
+      if (isEditing) {
+        await dispatch(dataActions.updateEnvelope({ id: editingEnvelope.id, ...payload }));
+      } else {
+        await dispatch(
+          dataActions.addEnvelope({ ...payload, scope: isSpender ? 'PERSONAL' : scope }),
+        );
+      }
+    } catch (e) {
+      setError(describeHouseholdError(e, 'Couldn’t save. Please try again.'));
+      setSaving(false);
+      return;
     }
     navigation.goBack();
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete envelope?', 'This cannot be undone.', [
+    const sharedNote =
+      isHousehold && editingEnvelope.shared
+        ? ' It is removed for everyone in the household. Spending in it is kept.'
+        : '';
+    Alert.alert('Delete envelope?', `This cannot be undone.${sharedNote}`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          dispatch(deleteEnvelope(editingEnvelope.id));
+        onPress: async () => {
+          try {
+            await dispatch(dataActions.deleteEnvelope(editingEnvelope.id));
+          } catch (e) {
+            Alert.alert('Couldn’t delete', describeHouseholdError(e));
+            return;
+          }
           navigation.goBack();
         },
       },
@@ -206,15 +248,52 @@ function CreateEnvelopeScreen() {
             />
           </View>
 
+          {isHousehold && !isEditing && !isSpender ? (
+            <View>
+              <View style={styles.spacer} />
+              <Text style={styles.sectionTitle}>Who is this budget for?</Text>
+              <View style={styles.typeList}>
+                {SCOPES.map((option) => (
+                  <Pressable
+                    key={option.key}
+                    onPress={() => setScope(option.key)}
+                    style={[styles.typeRow, scope === option.key && styles.typeRowSelected]}
+                  >
+                    <Text style={styles.typeLabel}>{option.label}</Text>
+                    <Text style={styles.typeDescription}>{option.description}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {isHousehold && !isEditing && isSpender ? (
+            <Text style={styles.helperText}>
+              This will be your own budget. Only you see it, unless you choose to share it.
+            </Text>
+          ) : null}
+
+          {isHousehold && isEditing ? (
+            <Text style={styles.helperText}>
+              {editingEnvelope.shared
+                ? 'Shared with the household.'
+                : readOnly
+                  ? 'Someone shared this budget with you. Only they can change it.'
+                  : 'Just yours.'}
+            </Text>
+          ) : null}
+
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <BaseButton onPress={handleSubmit} style={styles.createButton}>
-            <Text style={styles.createButtonLabel}>
-              {isEditing ? 'Save Changes' : 'Create Envelope'}
-            </Text>
-          </BaseButton>
+          {readOnly ? null : (
+            <BaseButton onPress={handleSubmit} disabled={saving} style={[styles.createButton, saving && styles.createButtonDisabled]}>
+              <Text style={styles.createButtonLabel}>
+                {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Create Envelope'}
+              </Text>
+            </BaseButton>
+          )}
 
-          {isEditing ? (
+          {isEditing && !readOnly ? (
             <Pressable onPress={handleDelete} style={styles.deleteButton}>
               <Text style={styles.deleteButtonLabel}>Delete Envelope</Text>
             </Pressable>
@@ -345,6 +424,15 @@ const getStyles = (colors) =>
       color: colors.dining,
       fontSize: 13,
       marginTop: 12,
+    },
+    helperText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      lineHeight: 19,
+      marginTop: 16,
+    },
+    createButtonDisabled: {
+      opacity: 0.6,
     },
     createButton: {
       backgroundColor: colors.gradientStart,
