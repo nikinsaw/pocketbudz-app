@@ -6,7 +6,9 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import CustomHeader from '../Components/Common/CustomHeader';
 import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
-import { addTransaction, updateTransaction, deleteTransaction } from '../store/slices/transactionsSlice';
+import { dataActions } from '../services/householdApp';
+import { selectEnvelopes, selectIsHousehold, selectTransactions } from '../store/selectors';
+import { describeHouseholdError } from '../utils/householdErrors';
 
 function toISODate(date) {
   const year = date.getFullYear();
@@ -60,7 +62,9 @@ function ManageTransactionScreen() {
   const route = useRoute();
 
   const categories = useSelector((state) => state.profile.categories);
-  const transactions = useSelector((state) => state.transactions.items);
+  const transactions = useSelector(selectTransactions);
+  const envelopes = useSelector(selectEnvelopes);
+  const isHousehold = useSelector(selectIsHousehold);
 
   const transactionId = route.params?.transactionId;
   const editingTransaction = transactionId
@@ -96,6 +100,7 @@ function ManageTransactionScreen() {
     initialDateOption === 'custom' ? initialRecord.date : '',
   );
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleAmountBlur = () => {
     const evaluated = evaluateAmountExpression(amount);
@@ -104,7 +109,27 @@ function ManageTransactionScreen() {
     }
   };
 
-  const handleSubmit = () => {
+  // In a household you can only change spending you added; others' shows read-only.
+  const readOnly = isEditing && editingTransaction.mine === false;
+
+  // Spending in a category with a shared household budget is visible to the whole
+  // household - say so before it is saved. (A personal budget of the same name wins and
+  // keeps it private, mirroring how the server picks the envelope.)
+  const sharedBudgetNotice = (() => {
+    if (!isHousehold || !selectedCategory) {
+      return null;
+    }
+    const wanted = selectedCategory.trim().toLowerCase();
+    const matches = envelopes.filter((e) => e.title.trim().toLowerCase() === wanted);
+    const hasPersonal = matches.some((e) => !e.shared);
+    const shared = matches.find((e) => e.shared);
+    return shared && !hasPersonal ? shared.title : null;
+  })();
+
+  const handleSubmit = async () => {
+    if (saving) {
+      return;
+    }
     setError('');
 
     if (!selectedCategory) {
@@ -137,10 +162,18 @@ function ManageTransactionScreen() {
 
     const payload = { merchant: trimmedMerchant, category: selectedCategory, amount: parsedAmount, date };
 
-    if (isEditing) {
-      dispatch(updateTransaction({ id: editingTransaction.id, ...payload }));
-    } else if (!localOnly) {
-      dispatch(addTransaction(payload));
+    setSaving(true);
+    try {
+      if (isEditing) {
+        await dispatch(dataActions.updateTransaction({ id: editingTransaction.id, ...payload }));
+      } else if (!localOnly) {
+        await dispatch(dataActions.addTransaction(payload));
+      }
+    } catch (e) {
+      // Stay on the form with what they typed, and say what went wrong.
+      setError(describeHouseholdError(e, 'Couldn’t save. Please try again.'));
+      setSaving(false);
+      return;
     }
     if (onSaved) {
       onSaved(payload);
@@ -154,8 +187,13 @@ function ManageTransactionScreen() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          dispatch(deleteTransaction(editingTransaction.id));
+        onPress: async () => {
+          try {
+            await dispatch(dataActions.deleteTransaction(editingTransaction.id));
+          } catch (e) {
+            Alert.alert('Couldn’t delete', describeHouseholdError(e));
+            return;
+          }
           navigation.goBack();
         },
       },
@@ -245,15 +283,38 @@ function ManageTransactionScreen() {
             />
           ) : null}
 
+          {sharedBudgetNotice && !readOnly ? (
+            <Text style={styles.helperText}>
+              This goes to the shared {'“'}{sharedBudgetNotice}{'”'} budget, so everyone in
+              your household can see it.
+            </Text>
+          ) : null}
+
+          {readOnly ? (
+            <Text style={styles.helperText}>
+              {editingTransaction.memberName
+                ? `${editingTransaction.memberName} added this, so only they can change it.`
+                : 'Only the person who added this can change it.'}
+            </Text>
+          ) : null}
+
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          <BaseButton onPress={handleSubmit} style={styles.saveButton}>
-            <Text style={styles.saveButtonLabel}>
-              {isEditing ? 'Save Changes' : localOnly ? 'Save' : 'Add Transaction'}
-            </Text>
-          </BaseButton>
+          {readOnly ? null : (
+            <BaseButton onPress={handleSubmit} disabled={saving} style={[styles.saveButton, saving && styles.saveButtonDisabled]}>
+              <Text style={styles.saveButtonLabel}>
+                {saving
+                  ? 'Saving…'
+                  : isEditing
+                    ? 'Save Changes'
+                    : localOnly
+                      ? 'Save'
+                      : 'Add Transaction'}
+              </Text>
+            </BaseButton>
+          )}
 
-          {isEditing ? (
+          {isEditing && !readOnly ? (
             <Pressable onPress={handleDelete} style={styles.deleteButton}>
               <Text style={styles.deleteButtonLabel}>Delete Transaction</Text>
             </Pressable>
@@ -265,6 +326,9 @@ function ManageTransactionScreen() {
 
 const getStyles = (colors) =>
   StyleSheet.create({
+    saveButtonDisabled: {
+      opacity: 0.6,
+    },
     screen: {
       flex: 1,
       backgroundColor: colors.background,
