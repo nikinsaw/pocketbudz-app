@@ -9,7 +9,11 @@ import BaseButton from '../Components/Common/BaseButton';
 import { useTheme } from '../theme/ThemeContext';
 import { getActivityDisplay } from '../utils/transactionDisplay';
 import { getMonthKey, formatMonthYear } from '../utils/formatDate';
-import { deleteTransactions, mergeTransactions } from '../store/slices/transactionsSlice';
+import SyncBanner from '../Components/Household/SyncBanner';
+import { useHouseholdRefresh } from '../Components/Household/useHouseholdRefresh';
+import { dataActions } from '../services/householdApp';
+import { selectTransactions } from '../store/selectors';
+import { describeHouseholdError } from '../utils/householdErrors';
 
 function AddTransactionButton({ onPress, styles }) {
   return (
@@ -25,7 +29,8 @@ function AllTransactionsScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
 
-  const transactions = useSelector((state) => state.transactions.items);
+  const transactions = useSelector(selectTransactions);
+  const refreshControl = useHouseholdRefresh();
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -70,7 +75,11 @@ function AllTransactionsScreen() {
   // receipt split apart — same day, same merchant. Amounts sum; category
   // carries over only if every row already agrees, otherwise the merged
   // entry falls back to "Other" rather than guessing.
+  // In a household only spending you added can be deleted or merged (solo rows have no
+  // `mine` flag, so this is always true there).
+  const onlyMine = selectedTransactions.every((transaction) => transaction.mine !== false);
   const canMerge =
+    onlyMine &&
     selectedTransactions.length >= 2 &&
     selectedTransactions.every(
       (transaction) =>
@@ -98,8 +107,13 @@ function AllTransactionsScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Merge',
-          onPress: () => {
-            dispatch(mergeTransactions({ ids: selectedIds, ...mergePreview }));
+          onPress: async () => {
+            try {
+              await dispatch(dataActions.mergeTransactions({ ids: selectedIds, ...mergePreview }));
+            } catch (e) {
+              Alert.alert('Couldn’t merge', describeHouseholdError(e));
+              return;
+            }
             exitSelectionMode();
           },
         },
@@ -116,8 +130,15 @@ function AllTransactionsScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            dispatch(deleteTransactions(selectedIds));
+          onPress: async () => {
+            try {
+              await dispatch(dataActions.deleteTransactions(selectedIds));
+            } catch (e) {
+              // Some may have been deleted; the list already reflects that.
+              Alert.alert('Couldn’t delete everything', describeHouseholdError(e));
+              exitSelectionMode();
+              return;
+            }
             exitSelectionMode();
           },
         },
@@ -167,13 +188,17 @@ function AllTransactionsScreen() {
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
         stickySectionHeadersEnabled={false}
+        refreshControl={refreshControl}
         ListHeaderComponent={
-          selectionMode ? null : (
-            <AddTransactionButton
-              onPress={() => navigation.navigate('ManageTransaction')}
-              styles={styles}
-            />
-          )
+          <View>
+            <SyncBanner />
+            {selectionMode ? null : (
+              <AddTransactionButton
+                onPress={() => navigation.navigate('ManageTransaction')}
+                styles={styles}
+              />
+            )}
+          </View>
         }
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -188,10 +213,15 @@ function AllTransactionsScreen() {
               <Text style={styles.mergeButtonLabel}>Merge {selectedIds.length} into one</Text>
             </BaseButton>
           ) : null}
+          {!onlyMine ? (
+            <Text style={styles.onlyMineNote}>
+              Includes spending added by others. You can only delete or merge your own.
+            </Text>
+          ) : null}
           <BaseButton
             onPress={handleDeleteSelected}
-            disabled={selectedIds.length === 0}
-            style={[styles.deleteButton, selectedIds.length === 0 && styles.deleteButtonDisabled]}
+            disabled={selectedIds.length === 0 || !onlyMine}
+            style={[styles.deleteButton, (selectedIds.length === 0 || !onlyMine) && styles.deleteButtonDisabled]}
           >
             <Text style={styles.deleteButtonLabel}>
               Delete {selectedIds.length > 0 ? selectedIds.length : ''} selected
@@ -214,6 +244,13 @@ const getStyles = (colors) =>
       paddingTop: 20,
       paddingBottom: 40,
       flexGrow: 1,
+    },
+    onlyMineNote: {
+      color: colors.textMuted,
+      fontSize: 12,
+      lineHeight: 17,
+      textAlign: 'center',
+      marginBottom: 8,
     },
     addCard: {
       borderWidth: 1.5,
