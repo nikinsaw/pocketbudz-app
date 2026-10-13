@@ -20,7 +20,7 @@ import { registerVisibilityRoutes } from './visibility/routes.js';
 export function buildApp(deps: Services) {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
   app.setErrorHandler((err, _req, reply) => {
-    if (err instanceof HttpError) return reply.code(err.status).send({ error: err.message });
+    if (err instanceof HttpError) return reply.code(err.status).send({ ...err.extra, error: err.message });
     if (err instanceof ZodError) return reply.code(400).send({ error: 'Invalid request' });
     reply.send(err);
   });
