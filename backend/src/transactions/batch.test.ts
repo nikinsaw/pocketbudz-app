@@ -152,6 +152,8 @@ describe('merge', () => {
     // Rolled back: A is still there untouched, and no merged transaction appeared.
     const left = await prisma.transaction.findMany();
     expect(left.map((t) => t.id)).toEqual([a.id]);
-    expect(left[0].merchant).toBe('A');
+    // createMany returns rows from one batch in no guaranteed order, so don't assume which
+    // merchant `a` is - just that the survivor is untouched.
+    expect(left[0].merchant).toBe(a.merchant);
   });
 });
