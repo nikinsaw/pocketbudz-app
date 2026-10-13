@@ -6,6 +6,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '../src/theme/ThemeContext';
 import householdReducer from '../src/store/slices/householdSlice';
+import householdDataReducer from '../src/store/slices/householdDataSlice';
 import settingsReducer from '../src/store/slices/settingsSlice';
 import budgetReducer from '../src/store/slices/budgetSlice';
 import transactionsReducer from '../src/store/slices/transactionsSlice';
@@ -19,6 +20,7 @@ export async function renderScreen(Screen, { household, settings, phone } = {}) 
   const store = configureStore({
     reducer: {
       household: householdReducer,
+      householdData: householdDataReducer,
       settings: settingsReducer,
       budget: budgetReducer,
       transactions: transactionsReducer,
