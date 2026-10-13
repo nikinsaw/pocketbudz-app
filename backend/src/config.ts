@@ -9,6 +9,14 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().default(15 * 60),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(30),
+  // AI features: the Gemini key lives only here, never in the app. Without it /ai/generate
+  // answers 503 and the app reports AI as unavailable.
+  GEMINI_API_KEY: z.string().default(''),
+  GEMINI_MODEL: z.string().min(1).default('gemini-3.5-flash-lite'),
+  // Requests per user per day. Protects the key (and its bill) from one account.
+  AI_DAILY_LIMIT: z.coerce.number().int().positive().default(100),
+  // The daily limit resets at midnight in this offset from UTC (default +05:30, India).
+  AI_DAY_OFFSET_MINUTES: z.coerce.number().int().default(330),
 });
 
 export type Config = z.infer<typeof schema>;
