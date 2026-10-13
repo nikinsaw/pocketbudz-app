@@ -1,6 +1,11 @@
 import { toLocalISODate } from '../utils/formatDate';
+import { describeHouseholdError } from '../utils/householdErrors';
 import { buildSoloData } from '../utils/soloData';
+import { syncFailed, syncStarted, syncSucceeded } from '../store/slices/householdDataSlice';
 import { dataImported, householdSet, signedIn, signedOut } from '../store/slices/householdSlice';
+
+// The server returns at most this many transactions per request.
+const TRANSACTION_LIMIT = 500;
 
 // Redux thunks that keep the household slice in step with the backend. Built from
 // injected `api`/`googleAuth` so they are testable without a phone; the app's real
@@ -16,8 +21,60 @@ export function createHouseholdActions({ api, googleAuth }) {
     return mine;
   };
 
+  // Load the household's budget data for the signed-in member (household mode's data
+  // source). One shared in-flight load: several screens asking at once hit the server once.
+  // Never throws - a failure is recorded in state and the last good data stays on screen.
+  // Resolves true on success.
+  let inFlight = null;
+  const syncData = () => (dispatch, getState) => {
+    const current = getState().household.current;
+    if (!current) {
+      return Promise.resolve(false);
+    }
+    if (inFlight) {
+      return inFlight;
+    }
+    const earner = current.role === 'OWNER' || current.role === 'EARNER';
+    const base = `/households/${current.id}`;
+
+    dispatch(syncStarted());
+    inFlight = (async () => {
+      try {
+        const [settings, envelopes, transactions, income, allowances] = await Promise.all([
+          api.request(base),
+          api.request(`${base}/envelopes`),
+          api.request(`${base}/transactions?limit=${TRANSACTION_LIMIT}`),
+          earner ? api.request(`${base}/income`) : null,
+          earner ? null : api.request(`${base}/allowances`),
+        ]);
+        // If they left or switched households while this was loading, drop the result.
+        if (getState().household.current?.id !== current.id) {
+          return false;
+        }
+        dispatch(
+          syncSucceeded({
+            loadedFor: current.id,
+            envelopes,
+            transactions,
+            income,
+            allowanceReceived: allowances ? allowances.total : 0,
+            cycleStartDay: settings.budgetCycleStartDay,
+          }),
+        );
+        return true;
+      } catch (error) {
+        dispatch(syncFailed(describeHouseholdError(error)));
+        return false;
+      } finally {
+        inFlight = null;
+      }
+    })();
+    return inFlight;
+  };
+
   return {
     syncHousehold,
+    syncData,
 
     // The agreement version the server expects to be accepted.
     fetchConsentVersion: async () => {
@@ -46,7 +103,10 @@ export function createHouseholdActions({ api, googleAuth }) {
         return;
       }
       try {
-        await dispatch(syncHousehold());
+        const mine = await dispatch(syncHousehold());
+        if (mine) {
+          await dispatch(syncData());
+        }
       } catch (error) {
         if (error.status !== 0) {
           throw error;
@@ -63,7 +123,9 @@ export function createHouseholdActions({ api, googleAuth }) {
       ({ name, consentVersion }) =>
       async (dispatch) => {
         await api.request('/households', { method: 'POST', body: { name, consentVersion } });
-        return dispatch(syncHousehold());
+        const mine = await dispatch(syncHousehold());
+        await dispatch(syncData());
+        return mine;
       },
 
     joinHousehold:
@@ -73,7 +135,9 @@ export function createHouseholdActions({ api, googleAuth }) {
           method: 'POST',
           body: { code: code.trim(), consentVersion },
         });
-        return dispatch(syncHousehold());
+        const mine = await dispatch(syncHousehold());
+        await dispatch(syncData());
+        return mine;
       },
 
     // The dashboard for the current budget cycle, already filtered by what I may see.
@@ -130,6 +194,8 @@ export function createHouseholdActions({ api, googleAuth }) {
             body: payload,
           });
           dispatch(dataImported(current.membershipId));
+          // Bring the uploaded data onto the screens.
+          await dispatch(syncData());
           return { ...result, skipped };
         } catch (error) {
           // 409 = this membership already uploaded (e.g. an earlier attempt whose reply
