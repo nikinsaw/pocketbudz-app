@@ -71,6 +71,20 @@ describe('request', () => {
     expect([error.status, error.message]).toEqual([409, 'Already in a household']);
   });
 
+  it('keeps the server’s whole error body, including its machine-readable reason', async () => {
+    const { api } = setup({ responses: { '/x': () => reply(429, { error: 'Used up for today', reason: 'daily-limit' }) } });
+    const error = await api.request('/x').catch((e) => e);
+    expect(error.data).toEqual({ error: 'Used up for today', reason: 'daily-limit' });
+    expect(error.message).toBe('Used up for today');
+  });
+
+  it('has no body data when the failure never reached the server or had no body', async () => {
+    const offline = setup({ responses: { '/x': () => { throw new TypeError('offline'); } } });
+    expect((await offline.api.request('/x').catch((e) => e)).data).toBeNull();
+    const signedOut = setup({ session: null });
+    expect((await signedOut.api.request('/x').catch((e) => e)).data).toBeNull();
+  });
+
   it('reports an unreachable server as status 0', async () => {
     const { api } = setup({
       responses: {
