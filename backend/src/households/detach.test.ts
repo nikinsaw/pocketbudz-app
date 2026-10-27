@@ -54,6 +54,30 @@ describe('leaving cleans up personal data but keeps anonymous totals', () => {
     expect(await prisma.transaction.count()).toBe(1);
   });
 
+  it("erases the text of a leaver's private spending from the database, keeping amount, date and category", async () => {
+    const { spender, household } = await setup();
+    const personal = await envelopes.create(spender.id, household.id, { ...fields, scope: 'PERSONAL' });
+    await transactions.create(spender.id, household.id, tx('Rent to Priya', { envelopeId: personal.id }));
+    await transactions.create(spender.id, household.id, tx('Surprise gift for Dad'));
+
+    await households.leave(spender.id, household.id);
+
+    const rows = await prisma.transaction.findMany({ orderBy: { createdAt: 'asc' } });
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.merchant)).toEqual(['Former member', 'Former member']);
+    expect(rows.map((r) => [r.amount, r.category])).toEqual([[10000, 'Fun'], [10000, 'Fun']]);
+    expect(JSON.stringify(rows)).not.toMatch(/Priya|Dad/);
+  });
+
+  it("does not touch other people's spending when someone leaves", async () => {
+    const { owner, spender, household } = await setup();
+    await transactions.create(owner.id, household.id, tx('Owner coffee'));
+    await transactions.create(spender.id, household.id, tx('Spender coffee'));
+    await households.leave(spender.id, household.id);
+    const merchants = (await prisma.transaction.findMany()).map((r) => r.merchant).sort();
+    expect(merchants).toEqual(['Former member', 'Owner coffee']);
+  });
+
   it("removes an earner's income so it stops counting toward the household", async () => {
     const { owner, earner, household } = await setup();
     await income.create(owner.id, household.id, { label: 'Salary', amount: 5000000 });

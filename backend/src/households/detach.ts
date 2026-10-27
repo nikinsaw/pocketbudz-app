@@ -1,9 +1,14 @@
 import type { Membership, PrismaClient } from '@prisma/client';
 
+// What a leaver's transactions say instead of the merchant they typed.
+export const FORMER_MEMBER_MERCHANT = 'Former member';
+
 // Takes a member out of their household (they left or were removed).
 //
-// Kept, anonymised: their transactions, so household totals stay correct. The
-// membership row stays too, with the account detached.
+// Kept, anonymised: their transactions (amount, date, category), so household totals stay
+// correct. The merchant of their private spending is replaced, because free text can name
+// people or places and must not outlive the person it describes. The membership row stays
+// too, with the account detached.
 // Removed: everything forward-looking or personal - allowances, income sources,
 // personal envelopes and all sharing settings. Itemised detail of their private
 // spending is downgraded to totals-only, so earners keep the totals but can no
@@ -17,6 +22,15 @@ export async function detachMember(prisma: PrismaClient, membership: Membership)
     prisma.envelope.deleteMany({ where: { ownerId: membership.id, scope: 'PERSONAL' } }),
     prisma.visibilityGrant.deleteMany({
       where: { OR: [{ ownerId: membership.id }, { viewerId: membership.id }] },
+    }),
+    // Private spending only. What was spent from a shared envelope is a household record
+    // (e.g. "Milk" under Groceries) that everyone could already see, so it stays itemised.
+    prisma.transaction.updateMany({
+      where: {
+        memberId: membership.id,
+        OR: [{ envelopeId: null }, { envelope: { scope: { not: 'SHARED' } } }],
+      },
+      data: { merchant: FORMER_MEMBER_MERCHANT },
     }),
     prisma.transactionVisibility.updateMany({
       where: { level: 'FULL', transaction: { memberId: membership.id } },
