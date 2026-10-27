@@ -19,6 +19,7 @@ import EditIncomeScreen from './src/Screens/EditIncomeScreen';
 import ManageTransactionScreen from './src/Screens/ManageTransactionScreen';
 import ManageCategoriesScreen from './src/Screens/ManageCategoriesScreen';
 import HouseholdScreen from './src/Screens/HouseholdScreen';
+import AccountScreen from './src/Screens/AccountScreen';
 import HouseholdDashboardScreen from './src/Screens/HouseholdDashboardScreen';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { Provider as StoreProvider, useSelector } from 'react-redux';
@@ -150,6 +151,7 @@ function RootNavigator() {
       />
       <Stack.Screen name="Household" component={HouseholdScreen} />
       <Stack.Screen name="HouseholdDashboard" component={HouseholdDashboardScreen} />
+      <Stack.Screen name="Account" component={AccountScreen} />
     </Stack.Navigator>
   );
 }

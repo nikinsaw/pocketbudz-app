@@ -121,6 +121,18 @@ function SettingsScreen() {
       value: householdValue,
       onPress: () => navigation.navigate('Household'),
     },
+    // Only once there is an account to export or delete.
+    ...(householdMode === 'solo'
+      ? []
+      : [
+          {
+            icon: '👤',
+            label: 'Account & data',
+            type: 'nav',
+            value: 'Download or delete',
+            onPress: () => navigation.navigate('Account'),
+          },
+        ]),
   ];
 
   const preferenceRows = [
