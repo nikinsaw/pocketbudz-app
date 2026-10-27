@@ -9,6 +9,7 @@ jest.mock('react-native-blob-util', () => ({
     dirs: { CacheDir: '/mock-cache', DocumentDir: '/mock-documents' },
     writeFile: jest.fn(() => Promise.resolve()),
     readFile: jest.fn(() => Promise.resolve('')),
+    unlink: jest.fn(() => Promise.resolve()),
   },
 }));
 

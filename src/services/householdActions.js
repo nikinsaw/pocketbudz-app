@@ -207,6 +207,24 @@ export function createHouseholdActions({ api, googleAuth }) {
         }
       },
 
+    // Everything the server holds about the signed-in person (profile, agreements, their
+    // data in each household), to hand to them as a file.
+    exportAccount: () => async () => api.request('/me/export'),
+
+    // Erases the account on the server (a sole owner of a household with other members is
+    // refused with a message), then signs this phone out. The budget kept on the phone in
+    // solo mode is not touched. The server confirmation word is sent here so a stray call
+    // cannot delete anything.
+    deleteAccount: () => async (dispatch) => {
+      await api.request('/me', { method: 'DELETE', body: { confirm: 'DELETE' } });
+      try {
+        await googleAuth.signOut();
+      } finally {
+        // Even if clearing the local session failed, the account is gone: show solo mode.
+        dispatch(signedOut());
+      }
+    },
+
     leaveHousehold: () => async (dispatch, getState) => {
       const current = getState().household.current;
       if (!current) {
